@@ -6,7 +6,7 @@ type Props = {
     };
 };
 
-export function TimeWidget({ state }: Props) {
+export function exampleWidget({ state }: Props) {
     return (
         <div>
             {state.data.now}

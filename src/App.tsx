@@ -57,7 +57,17 @@ function App() {
     });
   };
 
-  const cellStyle = {
+  const leftCellStyle = {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    overflow: "hidden",
+    paddingLeft: "30px",
+  };
+
+  const middleCellStyle = {
     width: "100%",
     height: "100%",
     display: "flex",
@@ -66,6 +76,16 @@ function App() {
     overflow: "hidden",
   };
 
+  const rightCellStyle = {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    overflow: "hidden",
+    paddingRight: "100px",
+    //border: "2px solid red",
+  };
 
   return (
     <div
@@ -73,6 +93,7 @@ function App() {
         background: "linear-gradient(135deg, #1a1a1a, #2d2d2d)",
         color: "white",
         width: "100%",
+        padding: "20px",
         height: "100vh",
         display: "grid",
         gridTemplateColumns: "1fr 1fr 1fr",
@@ -82,19 +103,19 @@ function App() {
       }}
     >
       {/* Top Row */}
-      <div style={cellStyle}>{renderSlot("top-left")}</div>
-      <div style={cellStyle}>{renderSlot("top-middle")}</div>
-      <div style={cellStyle}>{renderSlot("top-right")}</div>
+      <div style={leftCellStyle}>{renderSlot("top-left")}</div>
+      <div style={middleCellStyle}>{renderSlot("top-middle")}</div>
+      <div style={rightCellStyle}>{renderSlot("top-right")}</div>
 
       {/* Middle Row */}
-      <div style={cellStyle}>{renderSlot("middle-left")}</div>
-      <div style={cellStyle}>{renderSlot("middle")}</div>
-      <div style={cellStyle}>{renderSlot("middle-right")}</div>
+      <div style={leftCellStyle}>{renderSlot("middle-left")}</div>
+      <div style={middleCellStyle}>{renderSlot("middle")}</div>
+      <div style={rightCellStyle}>{renderSlot("middle-right")}</div>
 
       {/* Bottom Row */}
-      <div style={cellStyle}>{renderSlot("bottom-left")}</div>
-      <div style={cellStyle}>{renderSlot("bottom-middle")}</div>
-      <div style={cellStyle}>{renderSlot("bottom-right")}</div>
+      <div style={leftCellStyle}>{renderSlot("bottom-left")}</div>
+      <div style={middleCellStyle}>{renderSlot("bottom-middle")}</div>
+      <div style={rightCellStyle}>{renderSlot("bottom-right")}</div>
 
       {/* Bottom Bar */}
       <div

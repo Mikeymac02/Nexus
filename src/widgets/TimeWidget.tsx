@@ -11,7 +11,7 @@ export function TimeWidget({ state }: Props) {
         <div
             style ={{
                 fontSize: "3rem",
-                fontWeight: 200,
+                fontWeight: 300,
                 letterSpacing: "2px",
                 lineHeight: 1,
             }}>

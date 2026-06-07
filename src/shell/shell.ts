@@ -99,7 +99,7 @@ class NexusShell {
                     lastUpdated: now,
                 };
 
-                //console.log("STATE:", this.state);
+                console.log("STATE:", this.state);
                 this.lastRunTimes[module.id] = now
                 
             } catch (err) {
