@@ -6,7 +6,7 @@ export const weatherModule = {
     id: "weather",
     name: "Weather",
     refreshInterval: 300000, //Every 5 minutes, update weather
-    position: "top-left" as LayoutSlot,
+    position: "top-right" as LayoutSlot,
     //size: "medium",
 
     async update() {

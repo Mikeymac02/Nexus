@@ -4,7 +4,7 @@ export const timeModule = {
     id: "time",
     name: "Time",
     refreshInterval: 100,
-    position: "top-right" as LayoutSlot,
+    position: "top-left" as LayoutSlot,
     //size: "small",
 
     async update() {

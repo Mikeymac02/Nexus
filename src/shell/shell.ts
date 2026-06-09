@@ -1,5 +1,6 @@
 //import { NexusModule } from './types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { backgrounds } from '../backgrounds/backgroundRegistry';
 
 export type LayoutSlot = 
     | "top-left"
@@ -17,6 +18,8 @@ export type ModuleSize =
     | "small"
     | "medium"
     | "large";
+
+
 
 
 export type ModuleUpdateResult = {
@@ -43,6 +46,8 @@ class NexusShell {
     private lastRunTimes: Record<string, number> = {};
 
     state: Record<string, ModuleState> = {};
+
+    private activeBackgroundId = "dark-gradient";
 
     private updateTimer: number | null = null;
 
@@ -111,6 +116,16 @@ class NexusShell {
     getState() {
         return this.state;
     }
+
+    getBackground() {
+        return (backgrounds.find(bg => bg.id === this.activeBackgroundId) ?? backgrounds[0]);
+    }
+
+    setBackground(id: string) {
+        this.activeBackgroundId = id;
+    }
+
+
 }
 
 export const shell = new NexusShell()

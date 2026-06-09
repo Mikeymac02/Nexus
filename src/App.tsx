@@ -35,6 +35,7 @@ function App() {
 
 
   const state = shell.getState() as ShellState;
+  const background = shell.getBackground();
 
   const renderSlot = (slot: LayoutSlot) => {
     return Object.entries(state).map(([moduleId, moduleState]) => {
@@ -88,47 +89,59 @@ function App() {
   };
 
   return (
-    <div
-      style={{
-        background: "linear-gradient(135deg, #1a1a1a, #2d2d2d)",
-        color: "white",
-        width: "100%",
-        padding: "20px",
-        height: "100vh",
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr",
-        gridTemplateRows: "1fr 1fr 1fr 0.4fr",
-        gap: "10px",
-        boxSizing: "border-box",
-      }}
-    >
-      {/* Top Row */}
-      <div style={leftCellStyle}>{renderSlot("top-left")}</div>
-      <div style={middleCellStyle}>{renderSlot("top-middle")}</div>
-      <div style={rightCellStyle}>{renderSlot("top-right")}</div>
-
-      {/* Middle Row */}
-      <div style={leftCellStyle}>{renderSlot("middle-left")}</div>
-      <div style={middleCellStyle}>{renderSlot("middle")}</div>
-      <div style={rightCellStyle}>{renderSlot("middle-right")}</div>
-
-      {/* Bottom Row */}
-      <div style={leftCellStyle}>{renderSlot("bottom-left")}</div>
-      <div style={middleCellStyle}>{renderSlot("bottom-middle")}</div>
-      <div style={rightCellStyle}>{renderSlot("bottom-right")}</div>
-
-      {/* Bottom Bar */}
+    <>
       <div
         style={{
-          gridColumn: "1 / 4",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          position: "fixed",
+          inset: 0,
+          zIndex: -1,
+          background:
+            background.type === "gradient"
+              ? background.value
+              : undefined,
+        }}
+      />
+      <div
+        style={{
+          color: "white",
+          width: "100%",
+          padding: "20px",
+          height: "100vh",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gridTemplateRows: "1fr 1fr 1fr 0.4fr",
+          gap: "10px",
+          boxSizing: "border-box",
         }}
       >
-        {renderSlot("bottom-bar")}
-      </div>
-    </div>
+        {/* Top Row */}
+        <div style={leftCellStyle}>{renderSlot("top-left")}</div>
+        <div style={middleCellStyle}>{renderSlot("top-middle")}</div>
+        <div style={rightCellStyle}>{renderSlot("top-right")}</div>
+
+        {/* Middle Row */}
+        <div style={leftCellStyle}>{renderSlot("middle-left")}</div>
+        <div style={middleCellStyle}>{renderSlot("middle")}</div>
+        <div style={rightCellStyle}>{renderSlot("middle-right")}</div>
+
+        {/* Bottom Row */}
+        <div style={leftCellStyle}>{renderSlot("bottom-left")}</div>
+        <div style={middleCellStyle}>{renderSlot("bottom-middle")}</div>
+        <div style={rightCellStyle}>{renderSlot("bottom-right")}</div>
+
+        {/* Bottom Bar */}
+        <div
+          style={{
+            gridColumn: "1 / 4",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {renderSlot("bottom-bar")}
+        </div>
+        </div>
+      </>
   );
 }
 
