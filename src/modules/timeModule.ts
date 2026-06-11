@@ -1,11 +1,11 @@
-import type { LayoutSlot } from "../shell/shell"
+import type { LayoutSlot, ModuleSize } from "../shell/shell"
 
 export const timeModule = {
     id: "time",
     name: "Time",
     refreshInterval: 100,
-    position: "top-left" as LayoutSlot,
-    //size: "small",
+    position: "top-right" as LayoutSlot,
+    size: "small" as ModuleSize,
 
     async update() {
         return {
@@ -18,29 +18,3 @@ export const timeModule = {
         };
     },
 };
-
-
-
-
-
-
-/*
-export const timeModule = {
-    id: "time",
-    name: "Time",
-
-    update: async () => {
-        return {
-            data: {
-                now: new Date().toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                }),
-            },
-            lastUpdated: Date.now(),
-            displayType: "widget",
-            position: "top-left",
-        };
-    },
-};
-*/

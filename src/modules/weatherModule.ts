@@ -1,13 +1,13 @@
 /* This module uses the free open-meteo api to get weather and temp information of your location */
 
-import type { LayoutSlot } from "../shell/shell"
+import type { LayoutSlot, ModuleSize } from "../shell/shell"
 
 export const weatherModule = {
     id: "weather",
     name: "Weather",
     refreshInterval: 300000, //Every 5 minutes, update weather
-    position: "top-right" as LayoutSlot,
-    //size: "medium",
+    position: "top-left" as LayoutSlot,
+    size: "small" as ModuleSize,
 
     async update() {
         const response = await fetch(

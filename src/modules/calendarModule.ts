@@ -1,11 +1,11 @@
-import type { LayoutSlot } from "../shell/shell" //This imports the type for the position data that is returned
+import type { LayoutSlot, ModuleSize } from "../shell/shell" //This imports the type for the position data that is returned
 
 export const calendarModule = {
     id: "calendar",                          //How your module is identified and catalogued by the shell
     name: "Calendar",                        //Name of your module
     refreshInterval: 60000,                  //How often your module refreshes data (Currently set to 1 second aka 1000ms)
     position: "middle-left" as LayoutSlot,    //Position option chosen as listed in LayoutSlot
-              
+    size: "large" as ModuleSize,      
 
     //Everything here will only run during initialization
 
