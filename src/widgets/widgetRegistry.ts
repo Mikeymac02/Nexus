@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { TimeWidget } from "./TimeWidget";
 import { WeatherWidget } from './WeatherWidget';
 import { CalendarWidget } from './CalendarWidget';
+import { TickerWidget } from './tickerWidget';
 
 type ModuleState = {
         data: any;
@@ -20,4 +21,5 @@ export const widgetRegistry: Record<string, ComponentType<WidgetProps>> = {
     time: TimeWidget,
     weather: WeatherWidget,
     calendar: CalendarWidget,
+    ticker: TickerWidget,
 };

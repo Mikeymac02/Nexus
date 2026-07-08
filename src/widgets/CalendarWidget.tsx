@@ -1,47 +1,30 @@
 type Props = {
     state: {
         data: {
-            day: string;
-            events: {
-                time: string;
-                title: string;
-            }[];
-        };
+            events: Array<{ id: string; title: string; time: string }>;
+        }
     };
 };
 
 export function CalendarWidget({ state }: Props) {
-
-    let addition: string;
-    switch (state.data.day[state.data.day.length - 1]) {
-        case "1":
-            addition = "st";
-            break;
-        case "2":
-            addition = "nd";
-            break;
-        case "3":
-            addition = "rd";
-            break;
-        default:
-            addition = "th";
-    }
-
-    const date = state.data.day + addition;
     return (
-        <div>
-            <h3
-                style={{ fontWeight: 600, }}>
-                {date}
-            </h3>
-            {state.data.events.map((event) => (
-                <div
-                style={{ fontWeight: 200}}>
-                    {event.title}
-                </div>
-            ))}
+        <div className="widget-container" style={{ width: "100%", height: "100%", justifyContent: "flex-start", alignItems: "flex-start", padding: "2rem" }}>
+            <h2 className="widget-subtitle" style={{ marginBottom: "1.5rem", textTransform: "uppercase", letterSpacing: "2px" }}>
+                Today
+            </h2>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", width: "100%" }}>
+                {state.data.events.map((event) => (
+                    <div key={event.id} style={{ display: "flex", flexDirection: "column", borderBottom: "1px solid rgba(255,255,255,0.2)", paddingBottom: "1rem" }}>
+                        <span style={{ fontSize: "1.5rem", fontWeight: 600 }}>
+                            {event.title}
+                        </span>
+                        <span className="widget-subtitle" style={{ marginTop: "0.25rem" }}>
+                            {event.time}
+                        </span>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
-
-
