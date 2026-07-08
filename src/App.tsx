@@ -94,6 +94,17 @@ function App() {
     }); 
   };
 
+  const getModuleAlignment = (position: LayoutSlot) => {
+    if (position.endsWith("left")) {
+        return "flex-start";
+    } if (position.endsWith("right")) {
+        return "flex-end";
+    }
+    return "center";
+  };
+
+
+
 
 
   const renderModules = () => {
@@ -118,10 +129,19 @@ function App() {
 
             width: "100%",
             height: "100%",
+
             display: "flex",
-            justifyContent: "center",
+            justifyContent: getModuleAlignment(moduleState.position),
             alignItems: "center",
             overflow: "hidden",
+
+            //NEW CARD STYLES
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            borderRadius: "16px",
+            backdropFilter: "blur(10px)",
+            padding: "20px",
+            boxSizing: "border-box",
+
           }}
         >
           <ModuleComponent state={moduleState} />

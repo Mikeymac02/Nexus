@@ -36,7 +36,7 @@ export function CalendarWidget({ state }: Props) {
             </h3>
             {state.data.events.map((event) => (
                 <div
-                style={{ fontWeight: 200, textAlign: "left" }}>
+                style={{ fontWeight: 200}}>
                     {event.title}
                 </div>
             ))}
