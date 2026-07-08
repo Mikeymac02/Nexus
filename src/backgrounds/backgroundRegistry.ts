@@ -1,3 +1,5 @@
+import spaceImage from './space.jpg';
+
 export type BackgroundDefinition = {
     id: string;
     name: string;
@@ -28,6 +30,6 @@ export const backgrounds = [
         id: "space",
         name: "Space",
         type: "photo",
-        value: "/backgrounds/space.jpg",
+        value: spaceImage,
     }
 ];
