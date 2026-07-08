@@ -8,15 +8,9 @@ type Props = {
 
 export function TimeWidget({ state }: Props) {
     return (
-        <div
-            style ={{
-                fontSize: "3rem",
-                fontWeight: 300,
-                letterSpacing: "2px",
-                lineHeight: 1,
-            }}>
-            {state.data.now}
-        </div>
+        <div className="widget-container">
+            <h1 className="widget-primary-data">{state.data.now}</h1>
+            </div>
         );
 }
 

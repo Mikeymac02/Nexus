@@ -104,7 +104,7 @@ class NexusShell {
 
     state: Record<string, ModuleState> = {};
 
-    private activeBackgroundId = "dark-gradient";
+    private activeBackgroundId = "space";
     private updateTimer: number | null = null;
 
     register(module: NexusModule) {

@@ -17,7 +17,8 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 33px/145% var(--sans);
+  /* Changed global font size from 33px to a standard 16px baseline */
+  font: 16px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
@@ -113,4 +114,43 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+
+/* --- NEXUS WIDGET TYPOGRAPHY --- */
+
+/* For massive data like the Time or current Temperature */
+.widget-primary-data {
+  font-family: 'Inter', sans-serif;
+  font-size: 7rem; 
+  font-weight: 600; /* Semi-bold for quick readability */
+  line-height: 1;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* For section headers or event titles in the calendar */
+.widget-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 2rem;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+/* For secondary context like "Clear Skies" or "Wednesday, July 8th" */
+.widget-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7); /* 70% opacity makes it visually recede */
+  margin: 0;
+}
+
+/* Flexbox container to stack text cleanly inside your new translucent cards */
+.widget-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Aligns text to the left. Use 'center' if you prefer centered text */
+  width: 100%;
 }

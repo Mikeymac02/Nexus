@@ -5,7 +5,7 @@ export const calendarModule = {
     name: "Calendar",                        //Name of your module
     refreshInterval: 60000,                  //How often your module refreshes data (Currently set to 1 second aka 1000ms)
     position: "middle-left" as LayoutSlot,    //Position option chosen as listed in LayoutSlot
-    size: "large" as ModuleSize,      
+    size: "tall" as ModuleSize,      
 
     //Everything here will only run during initialization
 

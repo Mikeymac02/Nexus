@@ -158,12 +158,22 @@ function App() {
           position: "fixed",
           inset: 0,
           zIndex: -1,
-          background:
-            background.type === "gradient"
-              ? background.value
-              : background.type === "solid"
+          // Keep solid/gradient logic using the standard 'background' property
+          background: 
+            background.type === "gradient" || background.type === "solid"
               ? background.value
               : undefined,
+        // Add image logic using 'backgroundImage'
+          backgroundImage: 
+            background.type === "photo" ? `url(${background.value})` : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+    
+          // Add the blur effect for photos
+          filter: background.type === "photo" ? "blur(6px)" : undefined,
+    
+          // Scale slightly to prevent the blur from creating a white halo around the edges of the screen
+          transform: background.type === "photo" ? "scale(1.05)" : undefined, 
         }}
       />
       <div
