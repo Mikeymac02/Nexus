@@ -1,4 +1,5 @@
-import type { LayoutSlot, ModuleSize } from "../shell/shell";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
@@ -31,8 +32,7 @@ export const calendarModule = {
   id: "calendar",
   name: "Calendar",
   refreshInterval: 300000, 
-  position: "middle-left" as LayoutSlot, 
-  size: "small" as ModuleSize,
+
 
   async update() {
     try {

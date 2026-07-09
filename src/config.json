@@ -1,0 +1,25 @@
+{
+  "layout": {
+
+
+    "weather": {
+      "position": "top-left",
+      "size": "small"
+    },
+    "time": {
+      "position": "top-right",
+      "size": "small"
+    },
+    "calendar": {
+      "position": "middle-left",
+      "size": "tall"
+    },
+    "spotify": {
+      "position": "middle-right",
+      "size": "small"
+    }
+  }
+
+
+
+}
