@@ -2,10 +2,12 @@ import { timeModule } from "./timeModule";
 import { weatherModule } from './weatherModule';
 import { calendarModule } from './calendarModule';
 import { tickerModule } from "./tickerModule";
+import { spotifyModule } from "./spotifyModule";
 
 export const modules = [
     timeModule,
     weatherModule,
     calendarModule,
-    tickerModule,
+    //tickerModule,
+    spotifyModule
 ];
