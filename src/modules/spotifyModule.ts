@@ -31,8 +31,8 @@ export const spotifyModule = {
   id: "spotify",
   name: "Spotify",
   refreshInterval: 3000, 
-  position: "middle" as LayoutSlot, 
-  size: "large" as ModuleSize,
+  position: "middle-right" as LayoutSlot, 
+  size: "small" as ModuleSize,
 
   async update() {
     try {
