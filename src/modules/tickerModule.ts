@@ -4,8 +4,7 @@ export const tickerModule = {
   id: "ticker",
   name: "Live Ticker",
   refreshInterval: 60000, 
-  position: "bottom-bar" as LayoutSlot,
-  size: "large" as ModuleSize, // Size is ignored for the bottom-bar in your layout, but required by the type system
+
 
   async update() {
     return {

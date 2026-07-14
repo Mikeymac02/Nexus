@@ -12,11 +12,15 @@
     },
     "calendar": {
       "position": "middle-left",
-      "size": "tall"
+      "size": "small"
     },
     "spotify": {
       "position": "middle-right",
-      "size": "small"
+      "size": "tall"
+    },
+    "ticker": {
+      "position": "bottom-bar",
+      "size": "large"
     }
   }
 

@@ -2,7 +2,7 @@ import { timeModule } from "./timeModule";
 import { weatherModule } from './weatherModule';
 import { calendarModule } from './calendarModule';
 import { spotifyModule } from './spotifyModule';
-//import { tickerModule } from './tickerModule';
+import { tickerModule } from './tickerModule';
 
 import type { LayoutSlot, ModuleSize } from "../shell/shell";
 import config from "../config.json";
@@ -13,7 +13,7 @@ const rawModules = [
   weatherModule,
   calendarModule,
   spotifyModule,
-  //tickerModule
+  tickerModule
 ];
 
 // 2. Map over them and inject the layout properties from config.json
