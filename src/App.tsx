@@ -199,6 +199,8 @@ function App() {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            width: "100%",       // <-- Add this so it stretches across the screen
+            height: "100%",
           }}
         >
           {renderSlot("bottom-bar")}

@@ -9,6 +9,7 @@ import { WeatherWidget } from './WeatherWidget';
 import { CalendarWidget } from './CalendarWidget';
 import { TickerWidget } from './TickerWidget';
 import { SpotifyWidget } from './SpotifyWidget';
+import { NewsWidget } from './NewsWidget';
 
 // 2. We removed the locally defined ModuleState block that used to be here!
 
@@ -22,6 +23,7 @@ export const widgetRegistry: Record<string, ComponentType<any>> = {
     time: TimeWidget,
     weather: WeatherWidget,
     calendar: CalendarWidget,
-    ticker: TickerWidget,
+    //ticker: TickerWidget,
     spotify: SpotifyWidget,
+    news: NewsWidget
 };

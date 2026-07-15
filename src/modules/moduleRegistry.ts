@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { timeModule } from "./timeModule";
 import { weatherModule } from './weatherModule';
 import { calendarModule } from './calendarModule';
 import { spotifyModule } from './spotifyModule';
 import { tickerModule } from './tickerModule';
+import { newsModule } from './newsModule';
 
 import type { LayoutSlot, ModuleSize } from "../shell/shell";
 import config from "../config.json";
@@ -13,7 +15,8 @@ const rawModules = [
   weatherModule,
   calendarModule,
   spotifyModule,
-  tickerModule
+  //tickerModule,
+  newsModule
 ];
 
 // 2. Map over them and inject the layout properties from config.json
