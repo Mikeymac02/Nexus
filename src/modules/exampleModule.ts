@@ -8,6 +8,12 @@ export const exampleModule = {
 
     async update() {
         //Everything inside this function will run during each refresh as listed in refreshInterval
+
+        //To utilize the notification panel, use the following code
+        //shell.notify("Your message here", millisecondsToDisplayMessage);
+
+
+
         return {
             data: {
                 //Export your data here

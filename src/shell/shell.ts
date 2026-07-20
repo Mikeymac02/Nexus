@@ -107,25 +107,35 @@ class NexusShell {
     private activeBackgroundId = "space";
     private updateTimer: number | null = null;
 
+
+    private activeModuleIds: string[] = [];
+    setActiveModules(moduleIds: string[]) {
+        this.activeModuleIds = moduleIds;
+    }
+
+    //Notifications
+    private notificationQueue: { message: string, durationMs: number }[] = [];
+    private activeNotification: string | null = null;
+    private notificationTimeout: number | null = null;
+    private onStateChangeCallback: (() => void) | null = null;
+
+
     register(module: NexusModule) {
         const existingModule = this.modules.find(m => m.id === module.id);
         if (existingModule) { return; }
 
-        const newOccupiedSlots = getOccupiedSlots(module.position, module.size);
-
-        const conflict = this.modules.find(existing => {
-            const existingOccupiedSlots = getOccupiedSlots(existing.position, existing.size);
-            return existingOccupiedSlots.some(slot => newOccupiedSlots.includes(slot));
-        });
-
-        if (conflict) {
-            throw new Error(`For module "${module.id}", position "${module.position}" with size "${module.size}" conflicts with existing module "${conflict.id}" at position "${conflict.position}" with size "${conflict.size}".`);
-        }
+        /* 
+           --- BOOT-TIME CONFLICT CHECKER REMOVED ---
+           We are now handling validation dynamically in App.tsx 
+           whenever the user switches pages!
+        */
         this.modules.push(module);
     }
 
 
     start(onStateChange: () => void) {
+        this.onStateChangeCallback = onStateChange;
+
         if (this.updateTimer !== null) {
             return;
         }
@@ -150,6 +160,11 @@ class NexusShell {
         const now = Date.now()
 
         for (const module of this.modules) {
+
+            if (!this.activeModuleIds.includes(module.id)) {
+                continue;
+            }
+
             const lastRun = this.lastRunTimes[module.id] ?? 0;
             const elapsed = now - lastRun;
             const isDue = elapsed >= module.refreshInterval;
@@ -187,6 +202,49 @@ class NexusShell {
         this.activeBackgroundId = id;
     }
 
+
+    notify(message: string, durationMs: number = 5000) {
+        // Add the new notification to the back of the line
+        this.notificationQueue.push({ message, durationMs });
+        
+        // Attempt to process the queue
+        this.processNotificationQueue();
+    }
+
+    private processNotificationQueue() {
+        // If a notification is already playing on screen, do nothing.
+        // (The active notification will call this function again when it finishes)
+        if (this.activeNotification !== null) return;
+
+        // If the queue is empty, just force a UI update to clear the bubble and stop
+        if (this.notificationQueue.length === 0) {
+            if (this.onStateChangeCallback) this.onStateChangeCallback();
+            return;
+        }
+
+        // Grab the next notification in line
+        const nextNotification = this.notificationQueue.shift();
+        
+        if (nextNotification) {
+            this.activeNotification = nextNotification.message;
+            
+            // Force the UI to show the new bubble
+            if (this.onStateChangeCallback) this.onStateChangeCallback();
+
+            // Set the timer to hide this bubble and check for the next one
+            this.notificationTimeout = window.setTimeout(() => {
+                this.activeNotification = null;
+                this.notificationTimeout = null;
+                
+                // Recursively call this function to play the next notification in line!
+                this.processNotificationQueue(); 
+            }, nextNotification.durationMs);
+        }
+    }
+
+    getNotification() {
+        return this.activeNotification;
+    }
 
 }
 

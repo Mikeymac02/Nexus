@@ -1,29 +1,16 @@
 {
-  "layout": {
-
-
-    "weather": {
-      "position": "top-left",
-      "size": "small"
+  "presets": {
+    "main": {
+      "weather": { "position": "top-left", "size": "small" },
+      "time": { "position": "top-right", "size": "small" },
+      "calendar": { "position": "middle-left", "size": "small" },
+      "spotify": { "position": "middle-right", "size": "tall" },
+      "news": { "position": "bottom-bar", "size": "large" }
     },
-    "time": {
-      "position": "top-right",
-      "size": "small"
-    },
-    "calendar": {
-      "position": "middle-left",
-      "size": "small"
-    },
-    "spotify": {
-      "position": "middle-right",
-      "size": "tall"
-    },
-    "news": {
-      "position": "bottom-bar",
-      "size": "large"
+    "media": {
+      "time": { "position": "top-right", "size": "small" },
+      "spotify": { "position": "middle-right", "size": "tall" },
+      "news": { "position": "bottom-bar", "size": "large" }
     }
   }
-
-
-
 }

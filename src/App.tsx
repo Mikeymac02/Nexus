@@ -1,213 +1,203 @@
 import { useEffect, useState } from "react";
-
-import type { LayoutSlot } from "./shell/shell";
-import { shell, ModuleState } from './shell/shell';
+import type { LayoutSlot, ModuleSize } from "./shell/shell";
+import { shell, ModuleState, getOccupiedSlots } from './shell/shell'; 
 import { modules } from "./modules/moduleRegistry";
 import { widgetRegistry } from "./widgets/widgetRegistry";
-
-
-
-
+import config from "./config.json"; 
 
 type ShellState = Record<string, ModuleState>;
 
-
-
 function App() {
-  const [, setTick] = useState(0);
+    const [, setTick] = useState(0);
+    const [activePage, setActivePage] = useState<keyof typeof config.presets>("main"); 
 
-  useEffect(() => {
-    modules.forEach((module) => shell.register(module));
+    useEffect(() => {
+        modules.forEach((module) => shell.register(module));
+        shell.start(() => {
+            setTick((t) => t + 1);
+        });
+        return () => {
+            shell.stop();
+        };
+    }, []);
 
-    shell.start(() => {
-      setTick((t) => t + 1);
-    });
+    useEffect(() => {
+        // Grab the module IDs from the current preset (e.g., ["weather", "time", "spotify"])
+        const activeModulesOnScreen = Object.keys(config.presets[activePage]);
+        
+        // Push them to the shell!
+        shell.setActiveModules(activeModulesOnScreen);
+    }, [activePage]); 
 
-    return () => {
-      shell.stop();
+
+    const state = shell.getState() as ShellState;
+    const background = shell.getBackground();
+
+    // The Page Switching & Validation Logic
+    const togglePage = () => {
+        const pages = Object.keys(config.presets) as (keyof typeof config.presets)[];
+        const nextIndex = (pages.indexOf(activePage) + 1) % pages.length;
+        const nextPage = pages[nextIndex];
+
+        // On-the-fly Conflict Validation
+        const preset = config.presets[nextPage];
+        const occupied: string[] = [];
+        let hasConflict = false;
+
+        for (const layoutSettings of Object.values(preset)) {
+            const slots = getOccupiedSlots(layoutSettings.position as LayoutSlot, layoutSettings.size as ModuleSize);
+            for (const slot of slots) {
+                if (occupied.includes(slot)) {
+                    hasConflict = true;
+                    break;
+                }
+                occupied.push(slot);
+            }
+            if (hasConflict) break;
+        }
+
+        if (hasConflict) {
+            // Replaced the notification queue with a console warning for now!
+            console.warn(`Error: Overlapping modules detected on the ${nextPage} page!`);
+        } else {
+            setActivePage(nextPage);
+        }
     };
-  }, []);
 
-
-  const state = shell.getState() as ShellState;
-  const background = shell.getBackground();
-
-  const getGridPosition = (position: LayoutSlot) => {
-    const positions: Record<LayoutSlot, { column: number; row: number }> = {
-      "top-left": { column: 1, row: 1 },
-      "top-middle": { column: 2, row: 1 },
-      "top-right": { column: 3, row: 1 },
-
-      "middle-left": { column: 1, row: 2 },
-      "middle": { column: 2, row: 2 },
-      "middle-right": { column: 3, row: 2 },
-
-      "bottom-left": { column: 1, row: 3 },
-      "bottom-middle": { column: 2, row: 3 },
-      "bottom-right": { column: 3, row: 3 },
-
-      "bottom-bar": { column: 1, row: 4 },
-    };
-    return positions[position];
-  }
-  
-  const getGridPlacement = (state: ModuleState) => {
-    if (state.size === "medium") {
-      return {
-        columnSpan: 2,
-        rowSpan: 1,
-      };
-    } if (state.size === "large") {
-      return {
-        columnSpan: 2,
-        rowSpan: 2,
-      };
-    } if (state.size === "tall") {
-      return {
-        columnSpan: 1,
-        rowSpan: 2,
-      };
+    const getGridPosition = (position: LayoutSlot) => {
+        const positions: Record<LayoutSlot, { column: number; row: number }> = {
+            "top-left": { column: 1, row: 1 },
+            "top-middle": { column: 2, row: 1 },
+            "top-right": { column: 3, row: 1 },
+            "middle-left": { column: 1, row: 2 },
+            "middle": { column: 2, row: 2 },
+            "middle-right": { column: 3, row: 2 },
+            "bottom-left": { column: 1, row: 3 },
+            "bottom-middle": { column: 2, row: 3 },
+            "bottom-right": { column: 3, row: 3 },
+            "bottom-bar": { column: 1, row: 4 },
+        };
+        return positions[position];
     }
-    return {
-      columnSpan: 1,
-      rowSpan: 1,
+
+    const getGridPlacement = (size: ModuleSize) => {
+        if (size === "medium") return { columnSpan: 2, rowSpan: 1 };
+        if (size === "large") return { columnSpan: 2, rowSpan: 2 };
+        if (size === "tall") return { columnSpan: 1, rowSpan: 2 };
+        return { columnSpan: 1, rowSpan: 1 };
     };
-    
-  };
-
-
-
 
     const renderSlot = (slot: LayoutSlot) => {
-    return Object.entries(state).map(([moduleId, moduleState]) => {
-      if (moduleState.position !== slot) return null;
+        const currentLayout = config.presets[activePage];
+        
+        return Object.entries(currentLayout).map(([moduleId, layoutSettings]) => {
+            if (layoutSettings.position !== slot) return null;
+            
+            const ModuleComponent = widgetRegistry[moduleId];
+            if (!ModuleComponent) return null;
+            
+            const moduleState = state[moduleId] || { data: {} }; 
+            return <ModuleComponent key={moduleId} state={moduleState} />;
+        });
+    };
 
-      const ModuleComponent = widgetRegistry[moduleId];
-      if (!ModuleComponent) return null;
+    const renderModules = () => {
+        const currentLayout = config.presets[activePage];
 
-      return (
-        <ModuleComponent
-          key={moduleId}
-          state={moduleState}
-        />
-      );
-    }); 
-  };
+        return Object.entries(currentLayout).map(([moduleId, layoutSettings]) => {
+            if (layoutSettings.position === "bottom-bar") return null;
 
-  const getModuleAlignment = (position: LayoutSlot) => {
-    if (position.endsWith("left")) {
-        return "flex-start";
-    } if (position.endsWith("right")) {
-        return "flex-end";
-    }
-    return "center";
-  };
+            const ModuleComponent = widgetRegistry[moduleId];
+            if (!ModuleComponent) return null;
 
+            const gridPosition = getGridPosition(layoutSettings.position as LayoutSlot);
+            const gridPlacement = getGridPlacement(layoutSettings.size as ModuleSize);
+            const moduleState = state[moduleId] || { data: {} };
 
+            return (
+                <div
+                    key={moduleId}
+                    style={{
+                        gridColumnStart: gridPosition.column,
+                        gridColumnEnd: `span ${gridPlacement.columnSpan}`,
+                        gridRowStart: gridPosition.row,
+                        gridRowEnd: `span ${gridPlacement.rowSpan}`,
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        overflow: "hidden",
+                        
+                        // --- ADD THESE TWO LINES ---
+                        padding: "24px", 
+                        boxSizing: "border-box", 
 
+                        // --- DIRECTLY INJECTED FROSTED GLASS STYLES ---
+                        backgroundColor: "rgba(15, 15, 20, 0.65)", 
+                        backdropFilter: "blur(16px)",              
+                        WebkitBackdropFilter: "blur(16px)",        
+                        borderRadius: "24px",                      
+                        border: "1px solid rgba(255, 255, 255, 0.08)", 
+                        boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)", 
+                    }}
+                >
+                    <ModuleComponent state={moduleState} />
+                </div>
+            );
+        });
+    };
 
+    return (
+        <>
+            <div
+                style={{
+                    position: "fixed",
+                    inset: 0,
+                    zIndex: -1,
+                    background:
+                        background.type === "gradient"
+                            ? background.value
+                            : background.type === "solid"
+                            ? background.value
+                            : `url(${background.value}) center/cover`,
+                }}
+            />
 
-  const renderModules = () => {
-    return Object.entries(state).map(([moduleId, moduleState]) => {
-      if (moduleState.position === "bottom-bar") { return null; }
-
-      const ModuleComponent = widgetRegistry[moduleId];
-      if (!ModuleComponent) return null;
-
-      const gridPosition = getGridPosition(moduleState.position);
-      const gridPlacement = getGridPlacement(moduleState);
-
-
-      return (
-        <div
-          key={moduleId}
-          style={{
-            gridColumnStart: gridPosition.column,
-            gridColumnEnd: `span ${gridPlacement.columnSpan}`,
-            gridRowStart: gridPosition.row,
-            gridRowEnd: `span ${gridPlacement.rowSpan}`,
-
-            width: "100%",
-            height: "100%",
-
-            display: "flex",
-            justifyContent: getModuleAlignment(moduleState.position),
-            alignItems: "center",
-            overflow: "hidden",
-
-            //NEW CARD STYLES
-            backgroundColor: "rgba(0, 0, 0, 0.4)",
-            borderRadius: "16px",
-            backdropFilter: "blur(10px)",
-            padding: "20px",
-            boxSizing: "border-box",
-
-          }}
-        >
-          <ModuleComponent state={moduleState} />
-        </div>
-      );
-    });
-  };
-
-
-  return (
-    <>
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: -1,
-          // Keep solid/gradient logic using the standard 'background' property
-          background: 
-            background.type === "gradient" || background.type === "solid"
-              ? background.value
-              : undefined,
-        // Add image logic using 'backgroundImage'
-          backgroundImage: 
-            background.type === "photo" ? `url(${background.value})` : undefined,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-    
-          // Add the blur effect for photos
-          filter: background.type === "photo" ? "blur(6px)" : undefined,
-    
-          // Scale slightly to prevent the blur from creating a white halo around the edges of the screen
-          transform: background.type === "photo" ? "scale(1.05)" : undefined, 
-        }}
-      />
-      <div
-        style={{
-          color: "white",
-          width: "100%",
-          padding: "20px",
-          height: "100vh",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gridTemplateRows: "1fr 1fr 1fr 0.4fr",
-          gap: "10px",
-          boxSizing: "border-box",
-        }}
-      >
-
-        {renderModules()}
-
-        {/* Bottom Bar */}
-        <div
-          style={{
-            gridColumn: "1 / 4",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            width: "100%",       // <-- Add this so it stretches across the screen
-            height: "100%",
-          }}
-        >
-          {renderSlot("bottom-bar")}
-        </div>
-        </div>
-      </>
-  );
+            <div
+                onClick={togglePage} 
+                style={{
+                    color: "white",
+                    width: "100%",
+                    padding: "20px",
+                    height: "100vh",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gridTemplateRows: "1fr 1fr 1fr 0.4fr",
+                    gap: "10px",
+                    boxSizing: "border-box",
+                    cursor: "pointer",
+                }}
+            >
+                {renderModules()}
+                
+                {/* Bottom Bar */}
+                <div
+                    style={{
+                        gridColumn: "1 / 4",
+                        gridRow: "4", 
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        width: "100%",
+                        height: "100%",
+                    }}
+                >
+                    {renderSlot("bottom-bar")}
+                </div>
+            </div>
+        </>
+    );
 }
 
 export default App;

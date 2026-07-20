@@ -6,7 +6,7 @@ const API_KEY = import.meta.env.VITE_NEWS_API_KEY;
 export const newsModule = {
     id: "news",                          //How your module is identified and catalogued by the shell
     name: "News",                        //Name of your module
-    refreshInterval: 100000,                  //How often your module refreshes data (Currently set to 1 second aka 1000ms)
+    refreshInterval: 1000000,                  //How often your module refreshes data (Currently set to 1 second aka 1000ms)
             
 
     //Everything here will only run during initialization

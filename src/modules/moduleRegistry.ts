@@ -1,32 +1,31 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { LayoutSlot, ModuleSize } from "../shell/shell";
 import { timeModule } from "./timeModule";
 import { weatherModule } from './weatherModule';
 import { calendarModule } from './calendarModule';
 import { spotifyModule } from './spotifyModule';
-import { tickerModule } from './tickerModule';
 import { newsModule } from './newsModule';
 
-import type { LayoutSlot, ModuleSize } from "../shell/shell";
-import config from "../config.json";
+import config from "../config.json"; // Keep your config import!
 
-// 1. Array of modules
-const rawModules = [
-  timeModule,
-  weatherModule,
-  calendarModule,
-  spotifyModule,
-  //tickerModule,
-  newsModule
+// 1. Put your modules in a base array
+const baseModules = [
+    timeModule,
+    weatherModule,
+    calendarModule,
+    spotifyModule,
+    newsModule
 ];
 
-// 2. Map over them and inject the layout properties from config.json
-export const modules = rawModules.map((mod) => {
-  // Look up this specific module's config from the JSON file
-  const settings = config.layout[mod.id as keyof typeof config.layout];
+// 2. Map over them and inject the positions from your config file, just like you had before!
+export const modules = baseModules.map((module) => {
+    // Read from the new "presets.main" path
+    const settings = (config.presets.main as any)[module.id];
 
-  return {
-    ...mod,
-    position: (settings?.position || "top-left") as LayoutSlot, // Fallback if missing
-    size: (settings?.size || "small") as ModuleSize             // Fallback if missing
-  };
+    // We guarantee a position and size are returned so TypeScript doesn't panic
+    return {
+        ...module,
+        position: (settings?.position || (module as any).position || "top-left") as LayoutSlot,
+        size: (settings?.size || (module as any).size || "small") as ModuleSize,
+    };
 });
