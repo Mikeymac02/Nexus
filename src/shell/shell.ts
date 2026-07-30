@@ -157,36 +157,35 @@ class NexusShell {
     }
 
     async update() {
-        const now = Date.now()
-
+        const now = Date.now();
+        
         for (const module of this.modules) {
-
-            if (!this.activeModuleIds.includes(module.id)) {
-                continue;
-            }
-
             const lastRun = this.lastRunTimes[module.id] ?? 0;
             const elapsed = now - lastRun;
-            const isDue = elapsed >= module.refreshInterval;
-            if (!isDue) {
+            
+            // Skip if it isn't time to refresh yet
+            if (elapsed < module.refreshInterval) {
                 continue;
             }
-
-            try{
-                const result = await module.update();
+            
+            // Mark it as run immediately so a slow API doesn't trigger duplicate fetches
+            this.lastRunTimes[module.id] = now;
+            
+            console.log(`[Engine] Fetching: ${module.id}...`);
+            
+            // FIRE AND FORGET: By removing 'await', one frozen API can no longer freeze the dashboard!
+            module.update().then(result => {
                 this.state[module.id] = {
                     data: result.data,
                     position: module.position,
-                    lastUpdated: now,
+                    lastUpdated: Date.now(),
                     size: module.size,
                 };
-
+                console.log(`[Engine] Success: ${module.id}`);
                 console.log("STATE:", this.state);
-                this.lastRunTimes[module.id] = now
-                
-            } catch (err) {
-                console.error(`Module failed: ${module.id}`, err);
-            }      
+            }).catch(err => {
+                console.error(`[Engine] Failed: ${module.id}`, err);
+            });
         }
     }
 

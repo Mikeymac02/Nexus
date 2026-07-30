@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nexus Remote</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #222; color: white; }
+        button { display: block; width: 100%; padding: 15px; margin-bottom: 10px; font-size: 18px; cursor: pointer; background: #333; color: white; border: 1px solid #555; border-radius: 8px; }
+        .section { margin-bottom: 30px; }
+        h2 { border-bottom: 1px solid #444; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Nexus Remote</h1>
+    
+    <div class="section">
+        <h2>Dashboards</h2>
+        <button onclick="updatePage('main')">Main Dashboard</button>
+        <button onclick="updatePage('media')">Media Dashboard</button>
+    </div>
+
+    <div class="section">
+        <h2>Backgrounds</h2>
+        <button onclick="updateBackground('dark-gradient')">Dark Gradient</button>
+        <button onclick="updateBackground('purple-gradient')">Purple Gradient</button>
+        <button onclick="updateBackground('space')">Space Photo</button>
+    </div>
+    
+    <script>
+        const socket = io();
+        
+        // Keep a local copy of the current state so we only change what we need to
+        let currentConfig = { activeBackground: "dark-gradient", activePage: "main" };
+        
+        // Fetch the initial state on load
+        fetch('/api/config').then(res => res.json()).then(data => currentConfig = data);
+
+        function updateBackground(bgId) {
+            currentConfig.activeBackground = bgId;
+            socket.emit('update_config', currentConfig);
+        }
+
+        function updatePage(pageId) {
+            currentConfig.activePage = pageId;
+            socket.emit('update_config', currentConfig);
+        }
+
+        // Listen for updates from other devices to stay in sync
+        socket.on('config_updated', (newConfig) => {
+            currentConfig = newConfig;
+        });
+    </script>
+</body>
+</html>

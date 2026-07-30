@@ -7,13 +7,19 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+
+    "server": "node server/server.cjs",
+    "dev:all": "concurrently \"npm run server\" \"npm run dev\""
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.17.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {
@@ -24,6 +30,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/spotify-web-api-node": "^5.0.11",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^10.0.4",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
