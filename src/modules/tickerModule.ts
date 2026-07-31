@@ -1,5 +1,3 @@
-import type { LayoutSlot, ModuleSize } from "../shell/shell"
-
 export const tickerModule = {
   id: "ticker",
   name: "Live Ticker",

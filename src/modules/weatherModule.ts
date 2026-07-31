@@ -5,12 +5,13 @@ export const weatherModule = {
     id: "weather",
     name: "Weather",
     refreshInterval: 300000, //Every 5 minutes, update weather
+    settings: {
+        key: "https://api.open-meteo.com/v1/forecast?latitude=40.7326&longitude=-73.4454&current=temperature_2m,weather_code&timezone=America%2FNew_York&wind_speed_unit=mph&temperature_unit=fahrenheit&precipitation_unit=inch"
+    },
 
 
     async update() {
-        const response = await fetch(
-        "https://api.open-meteo.com/v1/forecast?latitude=40.7326&longitude=-73.4454&current=temperature_2m,weather_code&timezone=America%2FNew_York&wind_speed_unit=mph&temperature_unit=fahrenheit&precipitation_unit=inch"
-        );
+        const response = await fetch(this.settings.key);
 
         const weather = await response.json();
 

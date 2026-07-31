@@ -1,55 +1,333 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Nexus Remote</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nexus Admin</title>
+    
     <script src="/socket.io/socket.io.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
+    
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #222; color: white; }
-        button { display: block; width: 100%; padding: 15px; margin-bottom: 10px; font-size: 18px; cursor: pointer; background: #333; color: white; border: 1px solid #555; border-radius: 8px; }
-        .section { margin-bottom: 30px; }
-        h2 { border-bottom: 1px solid #444; padding-bottom: 5px; }
+        /* Base Styles */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #121212; color: #ffffff; padding-bottom: 80px; overflow-x: hidden; }
+        .app-header { padding: 20px; text-align: center; border-bottom: 1px solid #333; background-color: #1a1a1a; position: sticky; top: 0; z-index: 10; }
+        .app-header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: 1px; }
+        .tab-content { display: none; padding: 20px; animation: fadeIn 0.2s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: #222; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; }
+        h2 { font-size: 1.1rem; margin-bottom: 15px; color: #aaa; }
+
+        /* The Mini-Nexus Grid */
+        #mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 70px) 30px; gap: 8px; background: #111; padding: 10px; border-radius: 12px; border: 2px solid #333; margin-bottom: 20px; }
+        .grid-dropzone { border: 2px dashed #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #444; cursor: pointer; transition: all 0.2s ease; }
+        .grid-dropzone.drag-over { border-color: #1DB954; background: rgba(29, 185, 84, 0.1); }
+        .grid-module { background: #333; border: 2px solid #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; color: white; cursor: grab; transition: all 0.2s ease; z-index: 2; touch-action: none; }
+        .grid-module:active { cursor: grabbing; }
+        .grid-module.selected { border-color: #1DB954; background: #1a4d2e; box-shadow: 0 0 10px rgba(29,185,84,0.4); }
+
+        /* Editors & Bottom Sheet */
+        #module-editor { display: none; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #1DB954; }
+        .size-toggles { display: flex; gap: 5px; margin: 10px 0; }
+        .size-btn { flex: 1; padding: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 6px; font-size: 0.8rem; }
+        .size-btn.active { background: #1DB954; color: black; border-color: #1DB954; font-weight: bold; }
+        .remove-btn { width: 100%; padding: 12px; background: #8b0000; color: white; border: none; border-radius: 6px; font-weight: bold; margin-top: 10px; }
+        .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; display: none; opacity: 0; transition: opacity 0.3s; }
+        .bottom-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: #222; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 25px; z-index: 1000; transition: bottom 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
+        .sheet-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .module-card { background: #333; padding: 20px; border-radius: 12px; border: 1px solid #444; text-align: center; font-weight: bold; font-size: 1rem; color: white; }
+        .cancel-btn { width: 100%; padding: 15px; background: #444; border: none; color: white; border-radius: 8px; font-weight: bold; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #1a1a1a; border-top: 1px solid #333; display: flex; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .nav-item { flex: 1; padding: 15px 0; text-align: center; color: #888; background: none; border: none; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;}
+        .nav-item.active { color: #1DB954; } 
+        .nav-icon { font-size: 1.5rem; }
     </style>
 </head>
 <body>
-    <h1>Nexus Remote</h1>
-    
-    <div class="section">
-        <h2>Dashboards</h2>
-        <button onclick="updatePage('main')">Main Dashboard</button>
-        <button onclick="updatePage('media')">Media Dashboard</button>
+
+    <div class="app-header">
+        <h1>NEXUS ADMIN</h1>
     </div>
 
-    <div class="section">
-        <h2>Backgrounds</h2>
-        <button onclick="updateBackground('dark-gradient')">Dark Gradient</button>
-        <button onclick="updateBackground('purple-gradient')">Purple Gradient</button>
-        <button onclick="updateBackground('space')">Space Photo</button>
+    <!-- TAB 1: LAYOUT & GRID EDITOR -->
+    <div id="tab-layout" class="tab-content active">
+        <h2>Grid Editor</h2>
+        <div id="mini-grid"></div>
+
+        <div id="module-editor">
+            <h3 id="editor-title" style="color: #1DB954; text-transform: uppercase; margin-bottom: 5px;">Module</h3>
+            <p style="color: #888; font-size: 0.85rem;">Adjust size or remove from grid.</p>
+            <div class="size-toggles">
+                <button class="size-btn" id="btn-small" onclick="updateSize('small')">Small</button>
+                <button class="size-btn" id="btn-medium" onclick="updateSize('medium')">Medium</button>
+                <button class="size-btn" id="btn-tall" onclick="updateSize('tall')">Tall</button>
+                <button class="size-btn" id="btn-large" onclick="updateSize('large')">Large</button>
+            </div>
+            <button class="remove-btn" onclick="removeSelectedModule()">Remove from Layout</button>
+        </div>
+    </div>
+
+    <!-- TAB 2: SETTINGS (Dynamic Generator) -->
+    <div id="tab-settings" class="tab-content">
+        <h2>Module Settings</h2>
+        <p style="color: #888; font-size: 0.85rem; margin-bottom: 15px;">Configure variables for your active modules.</p>
+        
+        <!-- JavaScript will auto-generate forms here based on your config.json -->
+        <div id="dynamic-settings-container"></div>
     </div>
     
+    <!-- TAB 3: APPEARANCE -->
+    <div id="tab-appearance" class="tab-content">
+        <h2>Appearance</h2>
+        <div class="card">
+            <button style="width:100%; padding: 15px; margin-bottom: 10px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;" onclick="updateBackground('dark-gradient')">Dark Gradient</button>
+            <button style="width:100%; padding: 15px; margin-bottom: 10px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;" onclick="updateBackground('space')">Space Photo</button>
+        </div>
+    </div>
+
+    <!-- NATIVE-STYLE BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('layout', this)">
+            <span class="nav-icon">📱</span><span>Layout</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('settings', this)">
+            <span class="nav-icon">⚙️</span><span>Settings</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('appearance', this)">
+            <span class="nav-icon">🎨</span><span>Appearance</span>
+        </button>
+    </nav>
+
+    <!-- THE BOTTOM SHEET (Tap-to-Place Modal) -->
+    <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+    <div class="bottom-sheet" id="bottom-sheet">
+        <h2 style="margin: 0; color: white;">Add Module</h2>
+        <p style="color: #888; font-size: 0.9rem;">Select a widget to place in this slot.</p>
+        <div class="sheet-cards">
+            <button class="module-card" onclick="addModule('time')">Time</button>
+            <button class="module-card" onclick="addModule('weather')">Weather</button>
+            <button class="module-card" onclick="addModule('calendar')">Calendar</button>
+            <button class="module-card" onclick="addModule('spotify')">Spotify</button>
+            <button class="module-card" onclick="addModule('news')">News</button>
+        </div>
+        <button class="cancel-btn" onclick="closeSheet()">Cancel</button>
+    </div>
+
     <script>
         const socket = io();
-        
-        // Keep a local copy of the current state so we only change what we need to
-        let currentConfig = { activeBackground: "dark-gradient", activePage: "main" };
-        
-        // Fetch the initial state on load
-        fetch('/api/config').then(res => res.json()).then(data => currentConfig = data);
+        let currentConfig = null;
+        let selectedModuleId = null; 
+        let pendingSlot = null;      
 
-        function updateBackground(bgId) {
-            currentConfig.activeBackground = bgId;
-            socket.emit('update_config', currentConfig);
+        MobileDragDrop.polyfill({ dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride });
+        window.addEventListener('touchmove', function() {}, {passive: false});
+
+        const GRID_POSITIONS = {
+            "top-left": { col: 1, row: 1 }, "top-middle": { col: 2, row: 1 }, "top-right": { col: 3, row: 1 },
+            "middle-left": { col: 1, row: 2 }, "middle": { col: 2, row: 2 }, "middle-right": { col: 3, row: 2 },
+            "bottom-left": { col: 1, row: 3 }, "bottom-middle": { col: 2, row: 3 }, "bottom-right": { col: 3, row: 3 },
+            "bottom-bar": { col: 1, row: 4, colSpan: 3 }
+        };
+
+        const GRID_SIZES = { "small": { c: 1, r: 1 }, "medium": { c: 2, r: 1 }, "tall": { c: 1, r: 2 }, "large": { c: 2, r: 2 } };
+        const BOTTOM_ROW_SLOTS = ['bottom-left', 'bottom-middle', 'bottom-right'];
+
+        // --- DYNAMIC SETTINGS GENERATOR ---
+        function renderDynamicSettings() {
+            const container = document.getElementById('dynamic-settings-container');
+            container.innerHTML = ''; 
+
+            if (!currentConfig || !currentConfig.moduleSettings) return;
+
+            Object.entries(currentConfig.moduleSettings).forEach(([moduleId, settingsObj]) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `<h3 style="color: #1DB954; margin-bottom: 15px; text-transform: uppercase;">${moduleId}</h3>`;
+
+                Object.entries(settingsObj).forEach(([key, value]) => {
+                    const label = document.createElement('label');
+                    label.style.display = 'block'; label.style.color = '#888'; label.style.fontSize = '0.8rem'; label.style.marginBottom = '5px';
+                    label.innerText = key; 
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.id = `setting-${moduleId}-${key}`; 
+                    input.value = value;
+                    input.style.cssText = 'width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #444; background: #111; color: white;';
+
+                    card.appendChild(label);
+                    card.appendChild(input);
+                });
+
+                const saveBtn = document.createElement('button');
+                saveBtn.innerText = `Save ${moduleId}`;
+                saveBtn.style.cssText = 'width: 100%; padding: 12px; background: #1DB954; color: black; font-weight: bold; border: none; border-radius: 6px;';
+                
+                saveBtn.onclick = () => {
+                    const updatedSettings = {};
+                    Object.keys(settingsObj).forEach(key => {
+                        updatedSettings[key] = document.getElementById(`setting-${moduleId}-${key}`).value;
+                    });
+                    socket.emit('update_module_settings', { moduleId, settings: updatedSettings });
+                    alert(`${moduleId} settings saved!`);
+                };
+
+                card.appendChild(saveBtn);
+                container.appendChild(card);
+            });
         }
 
-        function updatePage(pageId) {
-            currentConfig.activePage = pageId;
-            socket.emit('update_config', currentConfig);
-        }
+        // --- BOOTSTRAP & SYNC ---
+        fetch('/api/config').then(res => res.json()).then(data => {
+            currentConfig = data;
+            renderMiniGrid();
+            renderDynamicSettings();
+        });
 
-        // Listen for updates from other devices to stay in sync
         socket.on('config_updated', (newConfig) => {
             currentConfig = newConfig;
+            renderMiniGrid();
+            renderDynamicSettings();
         });
+
+        // --- RENDER VISUAL GRID ---
+        function renderMiniGrid() {
+            if (!currentConfig) return;
+            const gridEl = document.getElementById('mini-grid');
+            gridEl.innerHTML = ''; 
+
+            Object.keys(GRID_POSITIONS).forEach(slot => {
+                const pos = GRID_POSITIONS[slot];
+                const div = document.createElement('div');
+                div.className = 'grid-dropzone'; div.innerText = '+';
+                div.style.gridColumn = pos.col + (pos.colSpan ? ` / span ${pos.colSpan}` : ''); div.style.gridRow = pos.row;
+                div.onclick = () => openSheet(slot); 
+
+                div.ondragenter = (e) => e.preventDefault(); 
+                div.ondragover = (e) => { e.preventDefault(); div.classList.add('drag-over'); };
+                div.ondragleave = () => div.classList.remove('drag-over');
+                div.ondrop = (e) => {
+                    e.preventDefault(); div.classList.remove('drag-over');
+                    const draggedModuleId = e.dataTransfer.getData('text/plain');
+                    if (draggedModuleId) moveModule(draggedModuleId, slot);
+                };
+                gridEl.appendChild(div);
+            });
+
+            const activePage = currentConfig.activePage;
+            const activeLayout = currentConfig.presets[activePage] || {};
+
+            Object.entries(activeLayout).forEach(([moduleId, moduleData]) => {
+                const pos = GRID_POSITIONS[moduleData.position];
+                const sizeSpan = GRID_SIZES[moduleData.size] || GRID_SIZES.small;
+                if (!pos) return; 
+
+                const div = document.createElement('div');
+                div.className = `grid-module ${selectedModuleId === moduleId ? 'selected' : ''}`;
+                div.innerText = moduleId;
+                div.style.gridColumn = `${pos.col} / span ${pos.colSpan || sizeSpan.c}`;
+                div.style.gridRow = `${pos.row} / span ${sizeSpan.r}`;
+
+                div.onclick = (e) => { e.stopPropagation(); selectModule(moduleId, moduleData.size); };
+                div.draggable = true;
+                div.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', moduleId);
+                    e.dataTransfer.effectAllowed = 'move';
+                    document.getElementById('module-editor').style.display = 'none';
+                    selectedModuleId = null;
+                };
+                gridEl.appendChild(div);
+            });
+        }
+
+        // --- EDITOR LOGIC ---
+        function selectModule(moduleId, currentSize) {
+            selectedModuleId = moduleId; renderMiniGrid(); 
+            document.getElementById('module-editor').style.display = 'block';
+            document.getElementById('editor-title').innerText = moduleId;
+            document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${currentSize}`).classList.add('active');
+        }
+
+        function updateSize(newSize) {
+            if (!selectedModuleId) return;
+            const activePage = currentConfig.activePage;
+            const updatedPresets = { ...currentConfig.presets };
+            const currentPosition = updatedPresets[activePage][selectedModuleId].position;
+
+            if (BOTTOM_ROW_SLOTS.includes(currentPosition) && (newSize === 'tall' || newSize === 'large')) {
+                alert("Modules in the bottom row cannot stretch into the bottom bar!"); return;
+            }
+            if (currentPosition === 'bottom-bar' && newSize !== 'large') {
+                alert("The bottom bar must remain large."); return;
+            }
+
+            updatedPresets[activePage][selectedModuleId].size = newSize;
+            socket.emit('update_config', { presets: updatedPresets });
+            document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${newSize}`).classList.add('active');
+        }
+
+        function removeSelectedModule() {
+            if (!selectedModuleId) return;
+            const activePage = currentConfig.activePage;
+            const updatedPresets = { ...currentConfig.presets };
+            delete updatedPresets[activePage][selectedModuleId]; 
+            socket.emit('update_config', { presets: updatedPresets });
+            document.getElementById('module-editor').style.display = 'none';
+            selectedModuleId = null;
+        }
+
+        function moveModule(moduleId, newSlot) {
+            const activePage = currentConfig.activePage;
+            const updatedPresets = { ...currentConfig.presets };
+            let targetSize = updatedPresets[activePage][moduleId].size;
+            
+            if (newSlot === 'bottom-bar') targetSize = 'large';
+            else if (BOTTOM_ROW_SLOTS.includes(newSlot)) {
+                if (targetSize === 'tall') targetSize = 'small';
+                if (targetSize === 'large') targetSize = 'medium';
+            }
+
+            updatedPresets[activePage][moduleId].position = newSlot;
+            updatedPresets[activePage][moduleId].size = targetSize;
+            socket.emit('update_config', { presets: updatedPresets });
+        }
+
+        // --- BOTTOM SHEET & TABS ---
+        function openSheet(slot) {
+            pendingSlot = slot; selectedModuleId = null; document.getElementById('module-editor').style.display = 'none'; renderMiniGrid(); 
+            document.getElementById('sheet-overlay').style.display = 'block';
+            setTimeout(() => { document.getElementById('sheet-overlay').style.opacity = '1'; document.getElementById('bottom-sheet').style.bottom = '0'; }, 10);
+        }
+
+        function closeSheet() {
+            document.getElementById('bottom-sheet').style.bottom = '-100%'; document.getElementById('sheet-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('sheet-overlay').style.display = 'none', 300);
+        }
+
+        function addModule(moduleId) {
+            const activePage = currentConfig.activePage;
+            const updatedPresets = { ...currentConfig.presets };
+            updatedPresets[activePage][moduleId] = { position: pendingSlot, size: pendingSlot === 'bottom-bar' ? 'large' : 'small' };
+            socket.emit('update_config', { presets: updatedPresets });
+            closeSheet();
+            setTimeout(() => selectModule(moduleId, 'small'), 350);
+        }
+
+        function switchTab(tabName, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        function updateBackground(bgId) { socket.emit('update_config', { activeBackground: bgId }); }
     </script>
 </body>
 </html>

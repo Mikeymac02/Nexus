@@ -1,206 +1,227 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client"; // NEW: The WebSocket Client
-import { backgrounds } from "./backgrounds/backgroundRegistry"; // NEW: To fetch your backgrounds
-
 import type { LayoutSlot } from "./shell/shell";
 import { shell, ModuleState } from './shell/shell';
 import { modules } from "./modules/moduleRegistry";
 import { widgetRegistry } from "./widgets/widgetRegistry";
+import { io } from "socket.io-client";
 
 type ShellState = Record<string, ModuleState>;
 
 function App() {
-    const [, setTick] = useState(0);
-    
-    // NEW: React State to hold our live configuration
-    const [config, setConfig] = useState<any>({ 
-        activeBackground: "dark-gradient", 
-        activePage: "main",
-        presets: { main: {}, media: {} }
+  const [, setTick] = useState(0);
+  const [config, setConfig] = useState<any>(null);
+
+  useEffect(() => {
+    // 1. Connect to your Node server's WebSocket
+    const socket = io('http://localhost:4000');
+
+    // 2. Helper function to instantly apply live changes to the dashboard
+    const applyConfigToShell = (data: any) => {
+      setConfig(data);
+      
+      // Inject live API settings safely
+      if (typeof (shell as any).setGlobalSettings === 'function') {
+         (shell as any).setGlobalSettings(data.moduleSettings || {});
+      }
+
+      if (data.activeBackground) {
+        shell.setBackground(data.activeBackground);
+      }
+
+      if (data.presets && data.presets[data.activePage || "main"]) {
+        const layout = data.presets[data.activePage || "main"];
+        const currentState = shell.getState(); 
+
+        modules.forEach(mod => {
+          if (layout[mod.id]) {
+            mod.position = layout[mod.id].position;
+            mod.size = layout[mod.id].size;
+            if (currentState[mod.id]) {
+              currentState[mod.id].position = layout[mod.id].position;
+              currentState[mod.id].size = layout[mod.id].size;
+            }
+          } else {
+            // NEW: If the module is NOT in the active layout, banish it to a hidden state
+            mod.position = "hidden" as any;
+            if (currentState[mod.id]) {
+              currentState[mod.id].position = "hidden" as any;
+            }
+          }
+        });
+      }
+    };
+
+    // 3. Fetch the initial config on boot
+    fetch('http://localhost:4000/api/config')
+      .then(res => res.json())
+      .then(data => {
+        applyConfigToShell(data);
+
+        // Scout for default module settings
+        const defaultSettingsPayload: Record<string, any> = {};
+        modules.forEach((module) => {
+          shell.register(module);
+          if (module.settings) {
+            defaultSettingsPayload[module.id] = module.settings;
+          }
+        });
+
+        // Silently sync default settings with the Node server
+        fetch('http://localhost:4000/api/sync-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(defaultSettingsPayload)
+        }).catch(err => console.error("Failed to sync settings with server", err));
+
+        // Start the dashboard timer
+        shell.start(() => {
+          setTick((t) => t + 1);
+        });
+      })
+      .catch(err => console.error("Failed to load config", err));
+
+    // 4. LISTEN FOR LIVE UPDATES FROM THE PHONE
+    socket.on('config_updated', (newConfig) => {
+      console.log("Live update received from Admin Panel!");
+      applyConfigToShell(newConfig);
+      
+      // Force React to instantly re-render the screen to reflect the new layout
+      setTick((t) => t + 1);
     });
 
-    useEffect(() => {
-        // 1. INITIAL LOAD: Fetch the saved config so it survives reboots
-        fetch("http://localhost:4000/api/config", { cache: "no-store" })
-            .then(res => res.json())
-            .then(data => {
-                console.log("INITIAL CONFIG LOAD:", data);
-                setConfig(data);
-            })
-            .catch(err => console.error("Failed to fetch config:", err));
+    return () => {
+      shell.stop();
+      socket.disconnect(); // Clean up the connection on close
+    };
+  }, []);
 
-        // 2. LIVE BRIDGE: Connect the WebSocket to the Node Server
-        const socket = io("http://localhost:4000");
+  if (!config) {
+    return <div style={{ color: "white", padding: "20px" }}>Loading Nexus...</div>;
+  }
+
+  const state = shell.getState() as ShellState;
+  const background = shell.getBackground();
+
+  const getGridPosition = (position: LayoutSlot) => {
+    const positions: Record<LayoutSlot, { column: number; row: number }> = {
+      "top-left": { column: 1, row: 1 },
+      "top-middle": { column: 2, row: 1 },
+      "top-right": { column: 3, row: 1 },
+      "middle-left": { column: 1, row: 2 },
+      "middle": { column: 2, row: 2 },
+      "middle-right": { column: 3, row: 2 },
+      "bottom-left": { column: 1, row: 3 },
+      "bottom-middle": { column: 2, row: 3 },
+      "bottom-right": { column: 3, row: 3 },
+      "bottom-bar": { column: 1, row: 4 },
+      "hidden": { column: 0, row: 0 } // <--- ADD THIS LINE
+    };
+    return positions[position];
+  }
+
+  const getGridPlacement = (state: ModuleState) => {
+    if (state.size === "medium") return { columnSpan: 2, rowSpan: 1 };
+    if (state.size === "large") return { columnSpan: 2, rowSpan: 2 };
+    if (state.size === "tall") return { columnSpan: 1, rowSpan: 2 };
+    return { columnSpan: 1, rowSpan: 1 };
+  };
+
+  const renderSlot = (slot: LayoutSlot) => {
+    return Object.entries(state).map(([moduleId, moduleState]) => {
+      if (moduleState.position !== slot) return null;
+      const ModuleComponent = widgetRegistry[moduleId];
+      if (!ModuleComponent) return null;
+      return <ModuleComponent key={moduleId} state={moduleState} />;
+    });
+  };
+
+  const renderModules = () => {
+    return Object.entries(state).map(([moduleId, moduleState]) => {
+      if (moduleState.position === "bottom-bar" || moduleState.position === "hidden") return null;
+      
+      const ModuleComponent = widgetRegistry[moduleId];
+      if (!ModuleComponent) return null;
+
+      const gridPosition = getGridPosition(moduleState.position);
+      // NEW: Don't attempt to render if the grid position doesn't exist!
+      if (!gridPosition) return null; 
+
+      const gridPlacement = getGridPlacement(moduleState);
+
+      return (
+        <div
+          key={moduleId}
+          style={{
+            gridColumnStart: gridPosition.column,
+            gridColumnEnd: `span ${gridPlacement.columnSpan}`,
+            gridRowStart: gridPosition.row,
+            gridRowEnd: `span ${gridPlacement.rowSpan}`,
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            overflow: "hidden",
+            transition: "all 0.4s ease-in-out" // Added a smooth animation when widgets move!
+          }}
+        >
+          <ModuleComponent state={moduleState} />
+        </div>
+      );
+    });
+  };
+
+  return (
+    <>
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: -1,
+          background:
+            background.type === "gradient"
+              ? background.value
+              : background.type === "solid"
+              ? background.value
+              : undefined,
+          backgroundImage: background.type === "photo" ? `url(${background.value})` : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          transition: "background 0.5s ease" 
+        }}
+      />
+      <div
+        style={{
+          color: "white",
+          width: "100%",
+          padding: "20px",
+          height: "100vh",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gridTemplateRows: "1fr 1fr 1fr 0.4fr",
+          gap: "10px",
+          boxSizing: "border-box",
+        }}
+      >
+        {renderModules()}
         
-        socket.on("connect", () => console.log("Connected to Nexus Remote Server!"));
-        
-        // 3. LISTEN: When the phone taps a button, instantly update React State
-        socket.on("config_updated", (newConfig) => {
-            console.log("LIVE UPDATE RECEIVED:", newConfig);
-            setConfig(newConfig);
-        });
-
-        // 4. ENGINE BOOT: Start the widget shell
-        modules.forEach((module) => shell.register(module));
-        shell.start(() => {
-            setTick((t) => t + 1);
-        });
-
-        // CLEANUP
-        return () => {
-            socket.disconnect();
-            shell.stop();
-        };
-    }, []);
-
-    const state = shell.getState() as ShellState;
-    
-    // NEW: Find the matching background definition from your registry based on the live config
-    const activeBg = backgrounds.find(bg => bg.id === config.activeBackground) || backgrounds[0];
-
-    // 1. Grab the layout dictionary for whichever page the remote currently has active
-    const currentLayout = config.presets?.[config.activePage] || config.presets?.main || {};
-    
-    // 2. Extract just the names (e.g., ["time", "spotify"]) to act as our Gatekeeper
-    const allowedModules = Object.keys(currentLayout);
-    
-
-
-    const getGridPosition = (position: LayoutSlot) => {
-        const positions: Record<LayoutSlot, { column: number; row: number }> = {
-            "top-left": { column: 1, row: 1 },
-            "top-middle": { column: 2, row: 1 },
-            "top-right": { column: 3, row: 1 },
-            "middle-left": { column: 1, row: 2 },
-            "middle": { column: 2, row: 2 },
-            "middle-right": { column: 3, row: 2 },
-            "bottom-left": { column: 1, row: 3 },
-            "bottom-middle": { column: 2, row: 3 },
-            "bottom-right": { column: 3, row: 3 },
-            "bottom-bar": { column: 1, row: 4 },
-        };
-        return positions[position];
-    }
-
-    const getGridPlacement = (state: ModuleState) => {
-        if (state.size === "medium") {
-            return { columnSpan: 2, rowSpan: 1 };
-        } if (state.size === "large") {
-            return { columnSpan: 2, rowSpan: 2 };
-        } if (state.size === "tall") {
-            return { columnSpan: 1, rowSpan: 2 };
-        }
-        return { columnSpan: 1, rowSpan: 1 };
-    };
-
-    const renderSlot = (slot: LayoutSlot) => {
-        return Object.entries(state).map(([moduleId, moduleState]) => {
-            if (!allowedModules.includes(moduleId)) return null;
-            
-            // OVERRIDE: Get the rules from JSON
-            const layoutConfig = currentLayout[moduleId];
-            if (layoutConfig.position !== slot) return null;
-
-            const ModuleComponent = widgetRegistry[moduleId];
-            if (!ModuleComponent) return null;
-            
-            // Pass the custom size and position down to the widget!
-            const overriddenState = { ...moduleState, position: layoutConfig.position, size: layoutConfig.size };
-
-            return <ModuleComponent key={moduleId} state={overriddenState} />;
-        });
-    };
-
-    const renderModules = () => {
-        return Object.entries(state).map(([moduleId, moduleState]) => {
-            if (!allowedModules.includes(moduleId)) return null; 
-
-            // OVERRIDE: Get the rules from JSON
-            const layoutConfig = currentLayout[moduleId];
-            const activePosition = layoutConfig.position;
-            const activeSize = layoutConfig.size;
-
-            if (activePosition === "bottom-bar") { return null; }
-            
-            const ModuleComponent = widgetRegistry[moduleId];
-            if (!ModuleComponent) return null;
-            
-            // Calculate grid math using your JSON rules instead of the defaults
-            const gridPosition = getGridPosition(activePosition);
-            const gridPlacement = getGridPlacement({ ...moduleState, size: activeSize });
-            
-            // Inject the new rules into the state so the widget knows how to draw itself
-            const overriddenState = { ...moduleState, position: activePosition, size: activeSize };
-            
-            return (
-                <div
-                    key={moduleId}
-                    style={{
-                        gridColumnStart: gridPosition.column,
-                        gridColumnEnd: `span ${gridPlacement.columnSpan}`,
-                        gridRowStart: gridPosition.row,
-                        gridRowEnd: `span ${gridPlacement.rowSpan}`,
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        overflow: "hidden",
-                    }}
-                >
-                    <ModuleComponent state={overriddenState} />
-                </div>
-            );
-        });
-    };
-
-    return (
-        <>
-            <div
-                style={{
-                    position: "fixed",
-                    inset: 0,
-                    zIndex: -1,
-                    // NEW: Dynamically render the background based on our live config state
-                    background:
-                        activeBg.type === "gradient"
-                            ? activeBg.value
-                            : activeBg.type === "solid"
-                            ? activeBg.value
-                            : `url(${activeBg.value}) center/cover no-repeat`, // Supports your Space Photo!
-                }}
-            />
-            <div
-                style={{
-                    color: "white",
-                    width: "100%",
-                    padding: "20px",
-                    height: "100vh",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gridTemplateRows: "1fr 1fr 1fr 0.4fr",
-                    gap: "10px",
-                    boxSizing: "border-box",
-                }}
-            >
-
-                {renderModules()}
-                {/* Bottom Bar */}
-                <div
-                    style={{
-                        gridColumn: "1 / 4",
-                        gridRow: "4", // <-- ADD THIS LINE to anchor it to the absolute bottom!
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                    }}
-                >
-                    {renderSlot("bottom-bar")}
-                </div>
-            </div>
-        </>
-    );
+        {/* Bottom Bar */}
+        <div
+          style={{
+            gridColumn: "1 / 4",
+            gridRow: "4", // <--- ADD THIS EXACT LINE
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {renderSlot("bottom-bar")}
+        </div>
+      </div>
+    </>
+  );
 }
+
 
 export default App;

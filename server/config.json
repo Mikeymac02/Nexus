@@ -3,30 +3,22 @@
   "activePage": "main",
   "presets": {
     "main": {
-      "weather": {
-        "position": "top-left",
-        "size": "small"
-      },
       "time": {
         "position": "top-right",
-        "size": "small"
-      },
-      "calendar": {
-        "position": "middle-left",
-        "size": "small"
-      },
-      "spotify": {
-        "position": "middle-right",
         "size": "small"
       },
       "news": {
         "position": "bottom-bar",
         "size": "large"
+      },
+      "weather": {
+        "position": "top-left",
+        "size": "small"
       }
     },
     "media": {
       "time": {
-        "position": "top-right",
+        "position": "top-left",
         "size": "small"
       },
       "spotify": {
@@ -37,6 +29,18 @@
         "position": "bottom-bar",
         "size": "large"
       }
+    }
+  },
+  "theme": {
+    "background": "dark-gradient",
+    "glassColor": "rgba(15, 15, 20, 0.65)",
+    "glassBlur": "16px",
+    "borderRadius": "24px",
+    "padding": "24px"
+  },
+  "moduleSettings": {
+    "weather": {
+      "key": "https://api.open-meteo.com/v1/forecast?latitude=40.7326&longitude=-73.4454&current=temperature_2m,weather_code&timezone=America%2FNew_York&wind_speed_unit=mph&temperature_unit=fahrenheit&precipitation_unit=inch"
     }
   }
 }
