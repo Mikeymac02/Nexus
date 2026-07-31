@@ -14,6 +14,14 @@
       "weather": {
         "position": "top-left",
         "size": "small"
+      },
+      "spotify": {
+        "position": "middle-right",
+        "size": "tall"
+      },
+      "calendar": {
+        "position": "middle-left",
+        "size": "small"
       }
     },
     "media": {

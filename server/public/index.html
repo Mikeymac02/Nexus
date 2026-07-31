@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nexus Admin</title>
     
+    <!-- WebSockets & Mobile Drag-and-Drop Polyfill -->
     <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
     <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
@@ -22,19 +23,63 @@
         h2 { font-size: 1.1rem; margin-bottom: 15px; color: #aaa; }
 
         /* The Mini-Nexus Grid */
-        #mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 70px) 30px; gap: 8px; background: #111; padding: 10px; border-radius: 12px; border: 2px solid #333; margin-bottom: 20px; }
-        .grid-dropzone { border: 2px dashed #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #444; cursor: pointer; transition: all 0.2s ease; }
-        .grid-dropzone.drag-over { border-color: #1DB954; background: rgba(29, 185, 84, 0.1); }
-        .grid-module { background: #333; border: 2px solid #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; color: white; cursor: grab; transition: all 0.2s ease; z-index: 2; touch-action: none; }
+        #mini-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 70px) 30px; 
+            gap: 8px;
+            background: #111;
+            padding: 10px;
+            border-radius: 12px;
+            border: 2px solid #333;
+            margin-bottom: 20px;
+        }
+        
+        /* The Empty Slots */
+        .grid-dropzone {
+            border: 2px dashed #444;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .grid-dropzone.drag-over {
+            border-color: #1DB954;
+            background: rgba(29, 185, 84, 0.1);
+        }
+        
+        /* The Active Modules */
+        .grid-module {
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: white;
+            cursor: grab; 
+            transition: all 0.2s ease;
+            z-index: 2; 
+            touch-action: none; /* CRUCIAL FOR MOBILE DRAGGING */
+        }
         .grid-module:active { cursor: grabbing; }
         .grid-module.selected { border-color: #1DB954; background: #1a4d2e; box-shadow: 0 0 10px rgba(29,185,84,0.4); }
 
-        /* Editors & Bottom Sheet */
+        /* Size Editor Controls */
         #module-editor { display: none; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #1DB954; }
         .size-toggles { display: flex; gap: 5px; margin: 10px 0; }
         .size-btn { flex: 1; padding: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 6px; font-size: 0.8rem; }
         .size-btn.active { background: #1DB954; color: black; border-color: #1DB954; font-weight: bold; }
         .remove-btn { width: 100%; padding: 12px; background: #8b0000; color: white; border: none; border-radius: 6px; font-weight: bold; margin-top: 10px; }
+
+        /* Bottom Sheet (Tap-to-Place Modal) */
         .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; display: none; opacity: 0; transition: opacity 0.3s; }
         .bottom-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: #222; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 25px; z-index: 1000; transition: bottom 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
         .sheet-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
@@ -56,9 +101,13 @@
 
     <!-- TAB 1: LAYOUT & GRID EDITOR -->
     <div id="tab-layout" class="tab-content active">
+        
         <h2>Grid Editor</h2>
-        <div id="mini-grid"></div>
+        <div id="mini-grid">
+            <!-- JavaScript will draw the visual map here -->
+        </div>
 
+        <!-- The Size & Remove Editor (Only shows when a module is tapped) -->
         <div id="module-editor">
             <h3 id="editor-title" style="color: #1DB954; text-transform: uppercase; margin-bottom: 5px;">Module</h3>
             <p style="color: #888; font-size: 0.85rem;">Adjust size or remove from grid.</p>
@@ -70,20 +119,38 @@
             </div>
             <button class="remove-btn" onclick="removeSelectedModule()">Remove from Layout</button>
         </div>
+        
+        <h2 style="margin-top: 30px;">Active Layout Page</h2>
+        <div class="card" id="dashboard-list">
+            <p style="color: #666; font-size: 0.9rem;">You are editing the default layout.</p>
+        </div>
     </div>
 
-    <!-- TAB 2: SETTINGS (Dynamic Generator) -->
-    <div id="tab-settings" class="tab-content">
-        <h2>Module Settings</h2>
-        <p style="color: #888; font-size: 0.85rem; margin-bottom: 15px;">Configure variables for your active modules.</p>
-        
-        <!-- JavaScript will auto-generate forms here based on your config.json -->
-        <div id="dynamic-settings-container"></div>
+    <!-- TAB 2: INTEGRATIONS -->
+    <div id="tab-integrations" class="tab-content">
+        <h2>API Hub</h2>
+        <p style="color: #888; font-size: 0.85rem; margin-bottom: 15px;">Configure your live data modules.</p>
+
+        <!-- Weather Form -->
+        <div class="card">
+            <h3 style="color: #1DB954; margin-bottom: 10px;">Weather Module</h3>
+            <input type="text" id="api-weather-zip" placeholder="Zip Code (e.g. 90210)" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white;">
+            <button onclick="saveApiKeys('weather')" style="width: 100%; padding: 12px; background: #1DB954; color: black; font-weight: bold; border: none; border-radius: 6px;">Save Weather</button>
+        </div>
+
+        <!-- Google Calendar Form -->
+        <div class="card">
+            <h3 style="color: #1DB954; margin-bottom: 10px;">Google Calendar</h3>
+            <input type="text" id="api-cal-client" placeholder="Client ID" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white;">
+            <input type="text" id="api-cal-secret" placeholder="Client Secret" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white;">
+            <input type="text" id="api-cal-refresh" placeholder="Refresh Token" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white;">
+            <button onclick="saveApiKeys('calendar')" style="width: 100%; padding: 12px; background: #1DB954; color: black; font-weight: bold; border: none; border-radius: 6px;">Save Calendar</button>
+        </div>
     </div>
     
-    <!-- TAB 3: APPEARANCE -->
+    <!-- TAB 3: SETTINGS & APPEARANCE -->
     <div id="tab-appearance" class="tab-content">
-        <h2>Appearance</h2>
+        <h2>Background UI</h2>
         <div class="card">
             <button style="width:100%; padding: 15px; margin-bottom: 10px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;" onclick="updateBackground('dark-gradient')">Dark Gradient</button>
             <button style="width:100%; padding: 15px; margin-bottom: 10px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;" onclick="updateBackground('space')">Space Photo</button>
@@ -95,11 +162,11 @@
         <button class="nav-item active" onclick="switchTab('layout', this)">
             <span class="nav-icon">📱</span><span>Layout</span>
         </button>
-        <button class="nav-item" onclick="switchTab('settings', this)">
-            <span class="nav-icon">⚙️</span><span>Settings</span>
+        <button class="nav-item" onclick="switchTab('integrations', this)">
+            <span class="nav-icon">🔌</span><span>APIs</span>
         </button>
         <button class="nav-item" onclick="switchTab('appearance', this)">
-            <span class="nav-icon">🎨</span><span>Appearance</span>
+            <span class="nav-icon">⚙️</span><span>Settings</span>
         </button>
     </nav>
 
@@ -124,9 +191,15 @@
         let selectedModuleId = null; 
         let pendingSlot = null;      
 
-        MobileDragDrop.polyfill({ dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride });
+        // Initialize the Mobile Drag-and-Drop Polyfill
+        MobileDragDrop.polyfill({
+            dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+        });
+
+        // NEW: Stop iOS and Android from canceling the drop event!
         window.addEventListener('touchmove', function() {}, {passive: false});
 
+        // The exact grid math pulled from your App.tsx layout engine
         const GRID_POSITIONS = {
             "top-left": { col: 1, row: 1 }, "top-middle": { col: 2, row: 1 }, "top-right": { col: 3, row: 1 },
             "middle-left": { col: 1, row: 2 }, "middle": { col: 2, row: 2 }, "middle-right": { col: 3, row: 2 },
@@ -134,91 +207,95 @@
             "bottom-bar": { col: 1, row: 4, colSpan: 3 }
         };
 
-        const GRID_SIZES = { "small": { c: 1, r: 1 }, "medium": { c: 2, r: 1 }, "tall": { c: 1, r: 2 }, "large": { c: 2, r: 2 } };
+        const GRID_SIZES = {
+            "small": { c: 1, r: 1 },
+            "medium": { c: 2, r: 1 },
+            "tall": { c: 1, r: 2 },
+            "large": { c: 2, r: 2 }
+        };
+
+        // Add a quick list of our restricted bottom row slots
         const BOTTOM_ROW_SLOTS = ['bottom-left', 'bottom-middle', 'bottom-right'];
 
-        // --- DYNAMIC SETTINGS GENERATOR ---
-        function renderDynamicSettings() {
-            const container = document.getElementById('dynamic-settings-container');
-            container.innerHTML = ''; 
+        // --- API HUB LOGIC ---
+        function populateApiKeys(config) {
+            if (!config.apiKeys) return;
+            if (config.apiKeys.weatherZip) document.getElementById('api-weather-zip').value = config.apiKeys.weatherZip;
+            if (config.apiKeys.calClientId) document.getElementById('api-cal-client').value = config.apiKeys.calClientId;
+            if (config.apiKeys.calClientSecret) document.getElementById('api-cal-secret').value = config.apiKeys.calClientSecret;
+            if (config.apiKeys.calRefreshToken) document.getElementById('api-cal-refresh').value = config.apiKeys.calRefreshToken;
+        }
 
-            if (!currentConfig || !currentConfig.moduleSettings) return;
-
-            Object.entries(currentConfig.moduleSettings).forEach(([moduleId, settingsObj]) => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `<h3 style="color: #1DB954; margin-bottom: 15px; text-transform: uppercase;">${moduleId}</h3>`;
-
-                Object.entries(settingsObj).forEach(([key, value]) => {
-                    const label = document.createElement('label');
-                    label.style.display = 'block'; label.style.color = '#888'; label.style.fontSize = '0.8rem'; label.style.marginBottom = '5px';
-                    label.innerText = key; 
-
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.id = `setting-${moduleId}-${key}`; 
-                    input.value = value;
-                    input.style.cssText = 'width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #444; background: #111; color: white;';
-
-                    card.appendChild(label);
-                    card.appendChild(input);
-                });
-
-                const saveBtn = document.createElement('button');
-                saveBtn.innerText = `Save ${moduleId}`;
-                saveBtn.style.cssText = 'width: 100%; padding: 12px; background: #1DB954; color: black; font-weight: bold; border: none; border-radius: 6px;';
-                
-                saveBtn.onclick = () => {
-                    const updatedSettings = {};
-                    Object.keys(settingsObj).forEach(key => {
-                        updatedSettings[key] = document.getElementById(`setting-${moduleId}-${key}`).value;
-                    });
-                    socket.emit('update_module_settings', { moduleId, settings: updatedSettings });
-                    alert(`${moduleId} settings saved!`);
-                };
-
-                card.appendChild(saveBtn);
-                container.appendChild(card);
-            });
+        function saveApiKeys(service) {
+            let payload = {};
+            if (service === 'weather') {
+                payload.weatherZip = document.getElementById('api-weather-zip').value;
+            } else if (service === 'calendar') {
+                payload.calClientId = document.getElementById('api-cal-client').value;
+                payload.calClientSecret = document.getElementById('api-cal-secret').value;
+                payload.calRefreshToken = document.getElementById('api-cal-refresh').value;
+            }
+            
+            socket.emit('update_api_keys', payload);
+            alert(service.charAt(0).toUpperCase() + service.slice(1) + " settings saved!");
         }
 
         // --- BOOTSTRAP & SYNC ---
         fetch('/api/config').then(res => res.json()).then(data => {
             currentConfig = data;
             renderMiniGrid();
-            renderDynamicSettings();
+            populateApiKeys(data);
         });
 
         socket.on('config_updated', (newConfig) => {
             currentConfig = newConfig;
             renderMiniGrid();
-            renderDynamicSettings();
+            populateApiKeys(newConfig);
         });
 
-        // --- RENDER VISUAL GRID ---
+        // --- RENDER THE VISUAL GRID ---
         function renderMiniGrid() {
             if (!currentConfig) return;
             const gridEl = document.getElementById('mini-grid');
             gridEl.innerHTML = ''; 
 
+            // 1. Draw the empty dropzones
             Object.keys(GRID_POSITIONS).forEach(slot => {
                 const pos = GRID_POSITIONS[slot];
                 const div = document.createElement('div');
-                div.className = 'grid-dropzone'; div.innerText = '+';
-                div.style.gridColumn = pos.col + (pos.colSpan ? ` / span ${pos.colSpan}` : ''); div.style.gridRow = pos.row;
+                div.className = 'grid-dropzone';
+                div.innerText = '+';
+                div.style.gridColumn = pos.col + (pos.colSpan ? ` / span ${pos.colSpan}` : '');
+                div.style.gridRow = pos.row;
+                
                 div.onclick = () => openSheet(slot); 
 
-                div.ondragenter = (e) => e.preventDefault(); 
-                div.ondragover = (e) => { e.preventDefault(); div.classList.add('drag-over'); };
-                div.ondragleave = () => div.classList.remove('drag-over');
-                div.ondrop = (e) => {
-                    e.preventDefault(); div.classList.remove('drag-over');
-                    const draggedModuleId = e.dataTransfer.getData('text/plain');
-                    if (draggedModuleId) moveModule(draggedModuleId, slot);
+                // DRAG AND DROP LISTENERS FOR EMPTY SLOTS
+                // NEW: Phones require ondragenter to be prevented as well!
+                div.ondragenter = (e) => {
+                    e.preventDefault(); 
                 };
+
+                div.ondragover = (e) => {
+                    e.preventDefault(); 
+                    div.classList.add('drag-over');
+                };
+                
+                div.ondragleave = () => div.classList.remove('drag-over');
+                
+                div.ondrop = (e) => {
+                    e.preventDefault();
+                    div.classList.remove('drag-over');
+                    const draggedModuleId = e.dataTransfer.getData('text/plain');
+                    if (draggedModuleId) {
+                        moveModule(draggedModuleId, slot);
+                    }
+                };
+
                 gridEl.appendChild(div);
             });
 
+            // 2. Draw the active modules
             const activePage = currentConfig.activePage;
             const activeLayout = currentConfig.presets[activePage] || {};
 
@@ -233,7 +310,12 @@
                 div.style.gridColumn = `${pos.col} / span ${pos.colSpan || sizeSpan.c}`;
                 div.style.gridRow = `${pos.row} / span ${sizeSpan.r}`;
 
-                div.onclick = (e) => { e.stopPropagation(); selectModule(moduleId, moduleData.size); };
+                div.onclick = (e) => {
+                    e.stopPropagation(); 
+                    selectModule(moduleId, moduleData.size);
+                };
+
+                // MAKE IT DRAGGABLE
                 div.draggable = true;
                 div.ondragstart = (e) => {
                     e.dataTransfer.setData('text/plain', moduleId);
@@ -241,44 +323,58 @@
                     document.getElementById('module-editor').style.display = 'none';
                     selectedModuleId = null;
                 };
+
                 gridEl.appendChild(div);
             });
         }
 
-        // --- EDITOR LOGIC ---
+        // --- EDITOR CONTROLS & LOGIC ---
         function selectModule(moduleId, currentSize) {
-            selectedModuleId = moduleId; renderMiniGrid(); 
+            selectedModuleId = moduleId;
+            renderMiniGrid(); 
+            
             document.getElementById('module-editor').style.display = 'block';
             document.getElementById('editor-title').innerText = moduleId;
+
             document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${currentSize}`).classList.add('active');
         }
 
         function updateSize(newSize) {
             if (!selectedModuleId) return;
+            
             const activePage = currentConfig.activePage;
             const updatedPresets = { ...currentConfig.presets };
             const currentPosition = updatedPresets[activePage][selectedModuleId].position;
 
+            // NEW RULE: Prevent bottom row modules from stretching down
             if (BOTTOM_ROW_SLOTS.includes(currentPosition) && (newSize === 'tall' || newSize === 'large')) {
-                alert("Modules in the bottom row cannot stretch into the bottom bar!"); return;
+                alert("Modules in the bottom row cannot stretch into the bottom bar!");
+                return; // Stop the resize!
             }
+            
+            // Protect the bottom bar from being shrunk
             if (currentPosition === 'bottom-bar' && newSize !== 'large') {
-                alert("The bottom bar must remain large."); return;
+                alert("The bottom bar must remain large to span the screen.");
+                return;
             }
 
             updatedPresets[activePage][selectedModuleId].size = newSize;
             socket.emit('update_config', { presets: updatedPresets });
+            
             document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${newSize}`).classList.add('active');
         }
 
         function removeSelectedModule() {
             if (!selectedModuleId) return;
+            
             const activePage = currentConfig.activePage;
             const updatedPresets = { ...currentConfig.presets };
             delete updatedPresets[activePage][selectedModuleId]; 
+
             socket.emit('update_config', { presets: updatedPresets });
+            
             document.getElementById('module-editor').style.display = 'none';
             selectedModuleId = null;
         }
@@ -286,9 +382,14 @@
         function moveModule(moduleId, newSlot) {
             const activePage = currentConfig.activePage;
             const updatedPresets = { ...currentConfig.presets };
+            
             let targetSize = updatedPresets[activePage][moduleId].size;
             
-            if (newSlot === 'bottom-bar') targetSize = 'large';
+            // Force the bottom bar to be large
+            if (newSlot === 'bottom-bar') {
+                targetSize = 'large';
+            } 
+            // NEW RULE: Automatically shrink tall/large modules if dropped into the bottom row
             else if (BOTTOM_ROW_SLOTS.includes(newSlot)) {
                 if (targetSize === 'tall') targetSize = 'small';
                 if (targetSize === 'large') targetSize = 'medium';
@@ -296,30 +397,46 @@
 
             updatedPresets[activePage][moduleId].position = newSlot;
             updatedPresets[activePage][moduleId].size = targetSize;
+
             socket.emit('update_config', { presets: updatedPresets });
         }
 
-        // --- BOTTOM SHEET & TABS ---
+        // --- TAP-TO-PLACE BOTTOM SHEET ---
         function openSheet(slot) {
-            pendingSlot = slot; selectedModuleId = null; document.getElementById('module-editor').style.display = 'none'; renderMiniGrid(); 
+            pendingSlot = slot;
+            selectedModuleId = null;
+            document.getElementById('module-editor').style.display = 'none';
+            renderMiniGrid(); 
+            
             document.getElementById('sheet-overlay').style.display = 'block';
-            setTimeout(() => { document.getElementById('sheet-overlay').style.opacity = '1'; document.getElementById('bottom-sheet').style.bottom = '0'; }, 10);
+            setTimeout(() => {
+                document.getElementById('sheet-overlay').style.opacity = '1';
+                document.getElementById('bottom-sheet').style.bottom = '0';
+            }, 10);
         }
 
         function closeSheet() {
-            document.getElementById('bottom-sheet').style.bottom = '-100%'; document.getElementById('sheet-overlay').style.opacity = '0';
+            document.getElementById('bottom-sheet').style.bottom = '-100%';
+            document.getElementById('sheet-overlay').style.opacity = '0';
             setTimeout(() => document.getElementById('sheet-overlay').style.display = 'none', 300);
         }
 
         function addModule(moduleId) {
             const activePage = currentConfig.activePage;
             const updatedPresets = { ...currentConfig.presets };
-            updatedPresets[activePage][moduleId] = { position: pendingSlot, size: pendingSlot === 'bottom-bar' ? 'large' : 'small' };
+            
+            updatedPresets[activePage][moduleId] = { 
+                position: pendingSlot, 
+                size: pendingSlot === 'bottom-bar' ? 'large' : 'small' 
+            };
+
             socket.emit('update_config', { presets: updatedPresets });
             closeSheet();
+            
             setTimeout(() => selectModule(moduleId, 'small'), 350);
         }
 
+        // --- UI NAVIGATION LOGIC ---
         function switchTab(tabName, btnElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));

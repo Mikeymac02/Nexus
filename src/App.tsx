@@ -144,10 +144,12 @@ function App() {
       if (!ModuleComponent) return null;
 
       const gridPosition = getGridPosition(moduleState.position);
-      // NEW: Don't attempt to render if the grid position doesn't exist!
       if (!gridPosition) return null; 
 
       const gridPlacement = getGridPlacement(moduleState);
+      
+      // NEW: Check the live config state, default to true!
+      const isFrosted = config.frostedBubbles !== false;
 
       return (
         <div
@@ -163,7 +165,15 @@ function App() {
             justifyContent: "center",
             alignItems: "center",
             overflow: "hidden",
-            transition: "all 0.4s ease-in-out" // Added a smooth animation when widgets move!
+            transition: "all 0.4s ease-in-out",
+            
+            // --- NEW: DYNAMIC FROSTED BUBBLES ---
+            backgroundColor: isFrosted ? "rgba(15, 15, 20, 0.5)" : "transparent",
+            backdropFilter: isFrosted ? "blur(12px)" : "none",
+            WebkitBackdropFilter: isFrosted ? "blur(12px)" : "none", // Safari support
+            borderRadius: isFrosted ? "24px" : "0px",
+            boxShadow: isFrosted ? "0 8px 32px rgba(0, 0, 0, 0.2)" : "none",
+            border: isFrosted ? "1px solid rgba(255, 255, 255, 0.05)" : "none",
           }}
         >
           <ModuleComponent state={moduleState} />
@@ -179,16 +189,22 @@ function App() {
           position: "fixed",
           inset: 0,
           zIndex: -1,
-          background:
-            background.type === "gradient"
+          // 1. Use backgroundColor exclusively for solid colors
+          backgroundColor: background.type === "solid" ? background.value : "#000",
+          
+          // 2. Use backgroundImage for BOTH photos and gradients!
+          backgroundImage: 
+            background.type === "photo" 
+              ? `url(${background.value})` 
+              : background.type === "gradient"
               ? background.value
-              : background.type === "solid"
-              ? background.value
-              : undefined,
-          backgroundImage: background.type === "photo" ? `url(${background.value})` : undefined,
+              : "none",
+              
+          // 3. These will now stay locked in permanently
           backgroundSize: "cover",
           backgroundPosition: "center",
-          transition: "background 0.5s ease" 
+          backgroundRepeat: "no-repeat",
+          transition: "all 0.5s ease" 
         }}
       />
       <div
