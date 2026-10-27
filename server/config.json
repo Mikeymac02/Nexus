@@ -7,17 +7,13 @@
         "position": "top-right",
         "size": "small"
       },
-      "news": {
-        "position": "bottom-bar",
-        "size": "large"
-      },
       "weather": {
         "position": "top-left",
         "size": "small"
       },
       "spotify": {
         "position": "middle-right",
-        "size": "tall"
+        "size": "medium"
       },
       "calendar": {
         "position": "middle-left",
