@@ -9,12 +9,12 @@ import { backgrounds } from "./backgrounds/backgroundRegistry";
 type ShellState = Record<string, ModuleState>;
 
 function App() {
-  // 1. All hooks at top level
+  // 1. ALL HOOKS AT TOP
   const [, setTick] = useState(0);
   const [dynamicBgId, setDynamicBgId] = useState<string | null>(null);
   const [config, setConfig] = useState<any>(null);
 
-  // Fetch initial config from backend port 4000
+  // Fetch initial config on load from backend (port 4000)
   useEffect(() => {
     const backendUrl = `http://${window.location.hostname}:4000/api/config`;
     fetch(backendUrl)
@@ -33,7 +33,7 @@ function App() {
     };
   }, []);
 
-  // Automation Engine with browser-safe timer types
+  // 2. THE AUTOMATION ENGINE (Fixed for ESLint set-state-in-effect)
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     let initialTimer: ReturnType<typeof setTimeout>;
@@ -67,16 +67,24 @@ function App() {
 
       return () => {
         clearTimeout(initialTimer);
-        clearInterval(initialTimer);
+        clearInterval(interval);
       };
 
     } else {
-      setDynamicBgId(null);
+      initialTimer = setTimeout(() => {
+        setDynamicBgId(null);
+      }, 0);
+
+      return () => {
+        clearTimeout(initialTimer);
+      };
     }
   }, [config?.backgroundMode]);
 
+  // 3. SHELL STATE
   const state = shell.getState() as ShellState;
 
+  // 4. DETERMINE BACKGROUND
   const activeBgId = dynamicBgId || config?.activeBackground || "dark-gradient";
   const currentBackground = backgrounds.find(bg => bg.id === activeBgId) || backgrounds[0];
 
@@ -92,7 +100,7 @@ function App() {
       "bottom-middle": { column: 2, row: 3 },
       "bottom-right": { column: 3, row: 3 },
       "bottom-bar": { column: 1, row: 4 },
-      "hidden": { column: 0, row: 0 }
+      "hidden": {column: 0,row: 0}
     };
     return positions[position];
   };
