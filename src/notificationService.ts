@@ -4,8 +4,10 @@ export interface NotificationPayload {
   title: string;
   message: string;
   type?: "info" | "warning" | "error" | "success";
+  notificationType?: "modal" | "achievement" | "bubble"; // Default is "bubble"
   icon?: string;
-  duration?: number; // Duration in ms (default 6000ms, set to 0 for persistent)
+  image?: string; // Optional image URL or base64 data
+  duration?: number; // Duration in ms (default 5000ms)
 }
 
 type NotificationListener = (notification: NotificationPayload) => void;
@@ -29,7 +31,9 @@ export const notificationService = new NotificationService();
 
 /**
  * Universal notification function — call this from ANY module, widget, or background process!
- * Example: notify({ title: "Doorbell", message: "Someone is at the front door!", icon: "🚪" });
+ * Examples:
+ *  - notify({ title: "Doorbell", message: "Motion detected at porch", notificationType: "bubble", image: "https://example.com/snapshot.jpg" });
+ *  - notify({ title: "Achievement Unlocked", message: "Night Owl", notificationType: "achievement" });
  */
 export function notify(payload: NotificationPayload) {
   notificationService.show(payload);
