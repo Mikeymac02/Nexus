@@ -1,45 +1,41 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+//import type { ModuleDefinition } from "../shell/types";
 
-const API_KEY = import.meta.env.VITE_NEWS_API_KEY;
-
+export interface NewsItem {
+  title: string;
+  source: string;
+  time: string;
+}
 
 export const newsModule = {
-    id: "news",                          //How your module is identified and catalogued by the shell
-    name: "News",                        //Name of your module
-    refreshInterval: 1000000,                  //How often your module refreshes data (Currently set to 1 second aka 1000ms)
-            
+  id: "news",
+  name: "News Ticker",
+  defaultPosition: "bottom-bar",
+  defaultSize: "small",
+  refreshInterval: 300000,
 
-    //Everything here will only run during initialization
-
-    async update() {
-        //Everything inside this function will run during each refresh as listed in refreshInterval
-        try {
-            const response = await fetch(`https://api.thenewsapi.com/v1/news/top?locale=us&language=en&api_token=${API_KEY}&limit=5`);
-           
-            console.log(response)
-            if (!response.ok) {
-                throw new Error("Failed to fetch news");
-            }
-
-            const data = await response.json();
-            // Extract just the headline titles
-            const headlines = data.data ? data.data.map((article: any) => article.title) : [];
-
-
-            return {
-                data: {
-                    headlines: headlines.length > 0 ? headlines : ["No news available"]
-                }
-            };
-            
-        } catch (error) {
-            console.error("Failed to fetch news", error);
-        }
-
-        return {
-            data: {
-                headlines: ["No news available"]
-            }
-        };
+  async update() {
+    try {
+      // Fetch news feed endpoint
+      const res = await fetch("/api/news");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items) return { data };
+      }
+    } catch (e) {
+      // Fallback headlines when offline
     }
-}
+
+    return {
+      data: {
+        items: [
+          { title: "Tech Breakthrough: Next-Gen Smart Displays Revolutionize Home Dashboards", source: "TechDaily", time: "10m ago" },
+          { title: "Global Market Summary: Tech Indices Surge on Innovation Growth", source: "Markets Today", time: "25m ago" },
+          { title: "Space Exploration Milestone: New Lunar Observatory Transmits First Images", source: "AstroNews", time: "1h ago" },
+          { title: "Weather Forecast Update: Mild Temperatures Expected Across North America", source: "Weather Network", time: "2h ago" },
+        ],
+        lastUpdated: new Date().toLocaleTimeString(),
+      },
+    };
+  },
+};

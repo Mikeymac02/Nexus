@@ -1,19 +1,85 @@
-import { useEffect, useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState, Component, ReactNode, ErrorInfo } from "react";
 import { io } from "socket.io-client";
 import type { LayoutSlot } from "./shell/shell";
 import { shell, ModuleState } from "./shell/shell";
 import { modules } from "./modules/moduleRegistry";
 import { widgetRegistry } from "./widgets/widgetRegistry";
 import { backgrounds } from "./backgrounds/backgroundRegistry";
+import { NotificationModal } from "./notificationModal";
+import { notificationService, NotificationPayload } from "./notificationService";
 
 type ShellState = Record<string, ModuleState>;
 
 // Connect socket to Node server on port 4000
 const socket = io(`http://${window.location.hostname}:4000`);
 
+// Widget Error Boundary Component
+interface ErrorBoundaryProps {
+  moduleId: string;
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class WidgetErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error(`[Widget Error Boundary] Module '${this.props.moduleId}' crashed:`, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            padding: "16px",
+            textAlign: "center",
+            color: "#f87171",
+            backgroundColor: "rgba(239, 68, 68, 0.1)",
+            borderRadius: "16px",
+            border: "1px dashed rgba(239, 68, 68, 0.3)",
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ fontSize: "24px", marginBottom: "6px" }}>⚠️</div>
+          <div style={{ fontWeight: 600, fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "1px" }}>
+            {this.props.moduleId} Offline
+          </div>
+          <div style={{ fontSize: "0.75rem", opacity: 0.7, marginTop: "4px" }}>
+            Module Error — Dashboard Running
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function App() {
   const [config, setConfig] = useState<any>(null);
   const [, setTick] = useState(0);
+
+  // Global Notification State
+  const [activeNotification, setActiveNotification] = useState<NotificationPayload | null>(null);
 
   // 1. Sync with Express Backend & Socket.io Admin Panel
   useEffect(() => {
@@ -31,12 +97,37 @@ function App() {
       }
     });
 
+    // Listen for live IFTTT & System Alerts over Socket.io
+    socket.on("ifttt_alert", (alertData: any) => {
+      setActiveNotification({
+        title: alertData.event || "Smart Alert",
+        message: alertData.message || "New event received",
+        type: "warning",
+        icon: "⚡",
+        duration: 8000,
+      });
+    });
+
+    socket.on("notification", (notifData: NotificationPayload) => {
+      setActiveNotification(notifData);
+    });
+
     return () => {
       socket.off("config_updated");
+      socket.off("ifttt_alert");
+      socket.off("notification");
     };
   }, []);
 
-  // 2. Start Modules Engine
+  // 2. Subscribe to local module notifications
+  useEffect(() => {
+    const unsubscribe = notificationService.subscribe((notification) => {
+      setActiveNotification(notification);
+    });
+    return unsubscribe;
+  }, []);
+
+  // 3. Start Modules Engine
   useEffect(() => {
     modules.forEach((module) => shell.register(module));
     shell.start(() => {
@@ -65,6 +156,7 @@ function App() {
       "bottom-middle": { column: 2, row: 3 },
       "bottom-right": { column: 3, row: 3 },
       "bottom-bar": { column: 1, row: 4 },
+      "hidden": { column: 0, row: 0 }
     };
     return positions[position];
   };
@@ -92,14 +184,17 @@ function App() {
       const ModuleComponent = widgetRegistry[moduleId];
       if (!ModuleComponent) return null;
 
-      // Pass the effective merged state down so widgets know their resized state
       const effectiveState: ModuleState = {
         ...moduleState,
         position,
         size,
       };
 
-      return <ModuleComponent key={moduleId} state={effectiveState} />;
+      return (
+        <WidgetErrorBoundary key={moduleId} moduleId={moduleId}>
+          <ModuleComponent state={effectiveState} />
+        </WidgetErrorBoundary>
+      );
     });
   };
 
@@ -110,7 +205,6 @@ function App() {
     return Object.entries(state).map(([moduleId, moduleState]) => {
       const layoutInfo = activeLayout[moduleId];
 
-      // Override position and size from the active preset in config.json
       const position = (layoutInfo?.position || moduleState.position) as LayoutSlot;
       const size = layoutInfo?.size || moduleState.size;
 
@@ -125,7 +219,6 @@ function App() {
       const gridPlacement = getGridPlacement(size, position);
       const isFrosted = config?.frostedBubbles !== false;
 
-      // Construct effective state so widget components receive the updated size prop
       const effectiveState: ModuleState = {
         ...moduleState,
         position,
@@ -157,13 +250,14 @@ function App() {
             transition: "all 0.4s ease-in-out",
           }}
         >
-          <ModuleComponent state={effectiveState} />
+          <WidgetErrorBoundary moduleId={moduleId}>
+            <ModuleComponent state={effectiveState} />
+          </WidgetErrorBoundary>
         </div>
       );
     });
   };
 
-  // Construct background CSS value for gradients, solids, and photo URLs
   const getBackgroundCss = () => {
     if (!currentBg) return "#1a1a1a";
     if (currentBg.type === "photo") {
@@ -216,6 +310,12 @@ function App() {
           {renderSlot("bottom-bar")}
         </div>
       </div>
+
+      {/* 🔔 Fullscreen Blurred Notification Modal */}
+      <NotificationModal
+        notification={activeNotification}
+        onDismiss={() => setActiveNotification(null)}
+      />
     </>
   );
 }

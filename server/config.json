@@ -13,11 +13,15 @@
       },
       "spotify": {
         "position": "middle-right",
-        "size": "medium"
+        "size": "small"
       },
       "calendar": {
         "position": "middle-left",
         "size": "small"
+      },
+      "news": {
+        "position": "bottom-bar",
+        "size": "large"
       }
     },
     "media": {

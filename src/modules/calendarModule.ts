@@ -20,6 +20,8 @@ async function getAccessToken() {
   });
   
   const data = await response.json();
+  console.log("Calendar Summary / Account:", data.summary);
+
   return data.access_token;
 }
 
