@@ -1,5 +1,5 @@
 {
-  "activeBackground": "space",
+  "activeBackground": "dark-gradient",
   "activePage": "main",
   "presets": {
     "main": {
@@ -20,7 +20,7 @@
         "size": "tall"
       },
       "calendar": {
-        "position": "middle-left",
+        "position": "middle",
         "size": "small"
       }
     },
